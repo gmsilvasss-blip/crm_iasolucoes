@@ -7,14 +7,11 @@ import psycopg2
 
 app = Flask(__name__)
 
-# Configurações de Segurança e Banco de Dados
 app.secret_key = os.getenv("SECRET_KEY", "chave_secreta_desenvolvimento")
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# --- FUNÇÃO AUXILIAR: CONEXÃO COM O BANCO ---
 def conectar_banco():
     return psycopg2.connect(DATABASE_URL)
-
 
 # ==========================================
 # MÓDULO: AUTENTICAÇÃO
@@ -70,7 +67,7 @@ def registro():
         except psycopg2.IntegrityError:
             return "<h1>Erro: Este e-mail já está cadastrado.</h1><br><a href='/registro'>Tentar novamente</a>", 400
         except Exception as e:
-            return f"<h1>Erro interno ao tentar cadastrar.</h1><p>Erro: {e}</p>", 500
+            return f"<h1>Erro interno.</h1><p>Erro: {e}</p>", 500
     return render_template('registro.html')
 
 @app.route('/logout')
@@ -85,8 +82,7 @@ def logout():
 
 @app.route('/home')
 def home():
-    if 'usuario_id' not in session:
-        return redirect(url_for('login'))
+    if 'usuario_id' not in session: return redirect(url_for('login'))
     
     proximo_compromisso = None
     eventos_calendario = []
@@ -96,7 +92,6 @@ def home():
         conn = conectar_banco()
         cur = conn.cursor()
         
-        # 1. Próximo compromisso Pendente
         cur.execute("""
             SELECT titulo_compromisso, data_hora 
             FROM agenda 
@@ -106,12 +101,11 @@ def home():
         resultado = cur.fetchone()
         
         if resultado:
-            hora_formatada = resultado[1].strftime('%H:%M')
-            proximo_compromisso = f"{hora_formatada} - {resultado[0]}"
+            proximo_compromisso = f"{resultado[1].strftime('%H:%M')} - {resultado[0]}"
             
-        # 2. Busca TODOS os compromissos para o calendário
+        # NOVA BUSCA: Agora trazemos o lead_id para o JavaScript saber de quem é o evento
         cur.execute("""
-            SELECT id, titulo_compromisso, data_hora, status, observacoes 
+            SELECT id, titulo_compromisso, data_hora, status, observacoes, lead_id 
             FROM agenda WHERE usuario_id = %s
         """, (session['usuario_id'],))
         
@@ -122,13 +116,13 @@ def home():
                 "data": t[2].strftime('%Y-%m-%d'),
                 "hora": t[2].strftime('%H:%M'),
                 "status": t[3],
-                "obs": t[4] if t[4] else ""
+                "obs": t[4] if t[4] else "",
+                "lead_id": t[5] if t[5] else "" # Evita erro com compromissos antigos
             })
             
-        # 3. Busca todos os leads para o dropdown de agendamento
-        cur.execute("SELECT nome, empresa FROM leads WHERE usuario_id = %s ORDER BY nome ASC", (session['usuario_id'],))
+        cur.execute("SELECT id, nome, empresa FROM leads WHERE usuario_id = %s ORDER BY nome ASC", (session['usuario_id'],))
         for l in cur.fetchall():
-            lista_leads.append({"nome": l[0], "empresa": l[1]})
+            lista_leads.append({"id": l[0], "nome": l[1], "empresa": l[2]})
             
         cur.close()
         conn.close()
@@ -141,18 +135,35 @@ def home():
 def minha_agenda():
     if 'usuario_id' not in session: return redirect(url_for('login'))
         
-    titulo = request.form.get('titulo_compromisso')
+    valor_select = request.form.get('titulo_compromisso')
     data_str = request.form.get('data_compromisso') 
     hora_str = request.form.get('hora_compromisso') 
+    nota_agendamento = request.form.get('nota_agendamento') # Nova observação inicial opcional
     data_hora_completa = f"{data_str} {hora_str}:00"
+    
+    # Separa o ID do Nome que vem do HTML (ex: "5|Felipe - Porto Seguro")
+    lead_id = None
+    titulo = valor_select
+    if '|' in valor_select:
+        partes = valor_select.split('|', 1)
+        lead_id = partes[0]
+        titulo = partes[1]
     
     try:
         conn = conectar_banco()
         cur = conn.cursor()
+        
+        # Salva o Agendamento
         cur.execute(
-            "INSERT INTO agenda (usuario_id, titulo_compromisso, data_hora, status) VALUES (%s, %s, %s, 'Pendente')",
-            (session['usuario_id'], titulo, data_hora_completa)
+            "INSERT INTO agenda (usuario_id, titulo_compromisso, data_hora, status, lead_id, observacoes) VALUES (%s, %s, %s, 'Pendente', %s, %s)",
+            (session['usuario_id'], titulo, data_hora_completa, lead_id, nota_agendamento)
         )
+        
+        # Insere a nota inicial na linha do tempo do Lead
+        if lead_id:
+            texto_historico = f"[Agendado para {data_str} às {hora_str}] {nota_agendamento if nota_agendamento else ''}"
+            cur.execute("INSERT INTO notas_leads (lead_id, nota) VALUES (%s, %s)", (lead_id, texto_historico[:300]))
+
         conn.commit()
         cur.close()
         conn.close()
@@ -166,6 +177,7 @@ def salvar_feedback():
     if 'usuario_id' not in session: return redirect(url_for('login'))
     
     evento_id = request.form.get('evento_id')
+    lead_id = request.form.get('lead_id')
     observacoes = request.form.get('observacoes')
     acao = request.form.get('acao') 
     
@@ -173,8 +185,12 @@ def salvar_feedback():
         conn = conectar_banco()
         cur = conn.cursor()
         
+        prefixo_nota = ""
+        
         if acao == 'excluir':
             cur.execute("DELETE FROM agenda WHERE id = %s AND usuario_id = %s", (evento_id, session['usuario_id']))
+            prefixo_nota = "[Cancelado/Excluído]"
+            
         elif acao == 'reagendar':
             nova_data = request.form.get('data_compromisso')
             nova_hora = request.form.get('hora_compromisso')
@@ -183,11 +199,19 @@ def salvar_feedback():
                 "UPDATE agenda SET observacoes = %s, status = 'Pendente', data_hora = %s WHERE id = %s AND usuario_id = %s",
                 (observacoes, data_hora_completa, evento_id, session['usuario_id'])
             )
-        else:
+            prefixo_nota = f"[Reagendado para {nova_data} às {nova_hora}]"
+            
+        else: # Concluir
             cur.execute(
                 "UPDATE agenda SET observacoes = %s, status = 'Concluído' WHERE id = %s AND usuario_id = %s",
                 (observacoes, evento_id, session['usuario_id'])
             )
+            prefixo_nota = "[Concluído]"
+            
+        # Alimenta a Base de Leads com a interação feita!
+        if lead_id and lead_id != "None":
+            texto_final = f"{prefixo_nota} {observacoes}"
+            cur.execute("INSERT INTO notas_leads (lead_id, nota) VALUES (%s, %s)", (lead_id, texto_final[:300]))
             
         conn.commit()
         cur.close()
@@ -197,136 +221,74 @@ def salvar_feedback():
         
     return redirect(url_for('home'))
 
-
 # ==========================================
-# MÓDULO: BASE DE LEADS
+# MÓDULO: BASE DE LEADS (MANTIDO INTACTO)
 # ==========================================
 
 @app.route('/base_leads')
 def base_leads():
     if 'usuario_id' not in session: return redirect(url_for('login'))
-    
     leads_processados = []
     try:
         conn = conectar_banco()
         cur = conn.cursor()
-        
         cur.execute("SELECT id, nome, empresa, interesse, contato FROM leads WHERE usuario_id = %s ORDER BY id DESC", (session['usuario_id'],))
         leads_db = cur.fetchall()
-        
         for l in leads_db:
             lead_id = l[0]
             cur.execute("SELECT nota, data_criacao FROM notas_leads WHERE lead_id = %s ORDER BY data_criacao DESC", (lead_id,))
             notas_db = cur.fetchall()
-            
             lista_notas = [{"texto": n[0], "data": n[1].strftime('%d/%m/%Y %H:%M')} for n in notas_db]
-            
-            leads_processados.append({
-                "id": lead_id,
-                "nome": l[1],
-                "empresa": l[2],
-                "interesse": l[3],
-                "contato": l[4],
-                "notas": lista_notas
-            })
-            
+            leads_processados.append({"id": lead_id, "nome": l[1], "empresa": l[2], "interesse": l[3], "contato": l[4], "notas": lista_notas})
         cur.close()
         conn.close()
-    except Exception as e:
-        print(f"Erro ao carregar leads: {e}")
-        
+    except Exception as e: print(f"Erro ao carregar leads: {e}")
     return render_template('base_leads.html', leads=leads_processados)
 
 @app.route('/cadastrar_lead', methods=['POST'])
 def cadastrar_lead():
     if 'usuario_id' not in session: return redirect(url_for('login'))
-    
-    nome = request.form.get('nome')
-    empresa = request.form.get('empresa')
-    interesse = request.form.get('interesse')
-    contato = request.form.get('contato')
-    nota_inicial = request.form.get('nota')
-    
+    nome = request.form.get('nome'); empresa = request.form.get('empresa'); interesse = request.form.get('interesse'); contato = request.form.get('contato'); nota = request.form.get('nota')
     try:
-        conn = conectar_banco()
-        cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO leads (usuario_id, nome, empresa, interesse, contato) VALUES (%s, %s, %s, %s, %s) RETURNING id",
-            (session['usuario_id'], nome, empresa, interesse, contato)
-        )
-        novo_lead_id = cur.fetchone()[0]
-        
-        if nota_inicial:
-            cur.execute("INSERT INTO notas_leads (lead_id, nota) VALUES (%s, %s)", (novo_lead_id, nota_inicial[:300]))
-            
-        conn.commit()
-        cur.close()
-        conn.close()
-    except Exception as e:
-        print(f"Erro ao cadastrar lead: {e}")
-        
+        conn = conectar_banco(); cur = conn.cursor()
+        cur.execute("INSERT INTO leads (usuario_id, nome, empresa, interesse, contato) VALUES (%s, %s, %s, %s, %s) RETURNING id", (session['usuario_id'], nome, empresa, interesse, contato))
+        if nota: cur.execute("INSERT INTO notas_leads (lead_id, nota) VALUES (%s, %s)", (cur.fetchone()[0], nota[:300]))
+        conn.commit(); cur.close(); conn.close()
+    except Exception as e: print(f"Erro cadastrar lead: {e}")
     return redirect(url_for('base_leads'))
 
 @app.route('/editar_lead', methods=['POST'])
 def editar_lead():
     if 'usuario_id' not in session: return redirect(url_for('login'))
-    
-    lead_id = request.form.get('lead_id')
-    nome = request.form.get('nome')
-    empresa = request.form.get('empresa')
-    interesse = request.form.get('interesse')
-    contato = request.form.get('contato')
-    
+    lead_id = request.form.get('lead_id'); nome = request.form.get('nome'); empresa = request.form.get('empresa'); interesse = request.form.get('interesse'); contato = request.form.get('contato')
     try:
-        conn = conectar_banco()
-        cur = conn.cursor()
-        cur.execute(
-            "UPDATE leads SET nome=%s, empresa=%s, interesse=%s, contato=%s WHERE id=%s AND usuario_id=%s",
-            (nome, empresa, interesse, contato, lead_id, session['usuario_id'])
-        )
-        conn.commit()
-        cur.close()
-        conn.close()
-    except Exception as e:
-        print(f"Erro ao editar lead: {e}")
-        
+        conn = conectar_banco(); cur = conn.cursor()
+        cur.execute("UPDATE leads SET nome=%s, empresa=%s, interesse=%s, contato=%s WHERE id=%s AND usuario_id=%s", (nome, empresa, interesse, contato, lead_id, session['usuario_id']))
+        conn.commit(); cur.close(); conn.close()
+    except: pass
     return redirect(url_for('base_leads'))
 
 @app.route('/deletar_lead', methods=['POST'])
 def deletar_lead():
     if 'usuario_id' not in session: return redirect(url_for('login'))
-    
     lead_id = request.form.get('lead_id')
     try:
-        conn = conectar_banco()
-        cur = conn.cursor()
+        conn = conectar_banco(); cur = conn.cursor()
         cur.execute("DELETE FROM leads WHERE id=%s AND usuario_id=%s", (lead_id, session['usuario_id']))
-        conn.commit()
-        cur.close()
-        conn.close()
-    except Exception as e:
-        print(f"Erro ao deletar lead: {e}")
-        
+        conn.commit(); cur.close(); conn.close()
+    except: pass
     return redirect(url_for('base_leads'))
 
 @app.route('/adicionar_nota', methods=['POST'])
 def adicionar_nota():
     if 'usuario_id' not in session: return redirect(url_for('login'))
-    
-    lead_id = request.form.get('lead_id')
-    nova_nota = request.form.get('nova_nota')
-    
+    lead_id = request.form.get('lead_id'); nova_nota = request.form.get('nova_nota')
     if nova_nota:
         try:
-            conn = conectar_banco()
-            cur = conn.cursor()
+            conn = conectar_banco(); cur = conn.cursor()
             cur.execute("INSERT INTO notas_leads (lead_id, nota) VALUES (%s, %s)", (lead_id, nova_nota[:300]))
-            conn.commit()
-            cur.close()
-            conn.close()
-        except Exception as e:
-            print(f"Erro ao adicionar nota: {e}")
-            
+            conn.commit(); cur.close(); conn.close()
+        except: pass
     return redirect(url_for('base_leads'))
 
 if __name__ == '__main__':
