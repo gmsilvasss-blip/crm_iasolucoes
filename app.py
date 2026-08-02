@@ -100,51 +100,57 @@ def home():
     
     proximo_compromisso = None
     eventos_calendario = []
+    lista_leads = [] # Nova lista para guardar os leads
     
     try:
         conn = conectar_banco()
         cur = conn.cursor()
         
-        # 1. Busca o próximo compromisso para exibir no card
+        # 1. Próximo compromisso Pendente
         cur.execute("""
             SELECT titulo_compromisso, data_hora 
             FROM agenda 
-            WHERE usuario_id = %s AND data_hora >= CURRENT_TIMESTAMP 
-            ORDER BY data_hora ASC 
-            LIMIT 1
+            WHERE usuario_id = %s AND data_hora >= CURRENT_TIMESTAMP AND status = 'Pendente'
+            ORDER BY data_hora ASC LIMIT 1
         """, (session['usuario_id'],))
         resultado = cur.fetchone()
         
         if resultado:
-            titulo = resultado[0]
             hora_formatada = resultado[1].strftime('%H:%M')
-            proximo_compromisso = f"{hora_formatada} - {titulo}"
+            proximo_compromisso = f"{hora_formatada} - {resultado[0]}"
             
-        # 2. Busca TODOS os compromissos do usuário para marcar no Calendário
+        # 2. Busca TODOS os compromissos para o calendário
         cur.execute("""
-            SELECT titulo_compromisso, data_hora 
-            FROM agenda 
-            WHERE usuario_id = %s
+            SELECT id, titulo_compromisso, data_hora, status, observacoes 
+            FROM agenda WHERE usuario_id = %s
         """, (session['usuario_id'],))
-        todos_resultados = cur.fetchall()
         
-        for t in todos_resultados:
+        for t in cur.fetchall():
             eventos_calendario.append({
-                "titulo": t[0],
-                "data": t[1].strftime('%Y-%m-%d'),
-                "hora": t[1].strftime('%H:%M')
+                "id": t[0],
+                "titulo": t[1],
+                "data": t[2].strftime('%Y-%m-%d'),
+                "hora": t[2].strftime('%H:%M'),
+                "status": t[3],
+                "obs": t[4] if t[4] else ""
             })
+            
+        # 3. NOVO: Busca todos os leads para preencher o campo de seleção
+        cur.execute("SELECT nome, empresa FROM leads WHERE usuario_id = %s ORDER BY nome ASC", (session['usuario_id'],))
+        leads_db = cur.fetchall()
+        for l in leads_db:
+            lista_leads.append({"nome": l[0], "empresa": l[1]})
             
         cur.close()
         conn.close()
     except Exception as e:
-        print(f"Aviso - Banco de dados: {e}")
-        pass
+        print(f"Erro BD Home: {e}")
     
-    # Envia o próximo compromisso e a lista completa (em formato JSON) para o HTML
+    # Adicionamos 'leads=lista_leads' aqui no retorno
     return render_template('home.html', 
                            compromisso=proximo_compromisso, 
-                           eventos_json=json.dumps(eventos_calendario))
+                           eventos_json=json.dumps(eventos_calendario),
+                           leads=lista_leads)
 
 
 # --- ROTA 6: SALVAR NA AGENDA ---
