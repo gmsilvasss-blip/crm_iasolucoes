@@ -1,0 +1,8 @@
+Hostname: dpg-d9nbvgbm8hqs73e1b7tg-a
+Port:5432
+Database: crm_db_pzqd
+username: crm_db_pzqd_user
+Password:d80acU2QMrrzv3FqUlKkRkZE5aBO5FQV
+Internal Database URL:postgresql://crm_db_pzqd_user:d80acU2QMrrzv3FqUlKkRkZE5aBO5FQV@dpg-d9nbvgbm8hqs73e1b7tg-a/crm_db_pzqd
+External Database URL : postgresql://crm_db_pzqd_user:d80acU2QMrrzv3FqUlKkRkZE5aBO5FQV@dpg-d9nbvgbm8hqs73e1b7tg-a.oregon-postgres.render.com/crm_db_pzqd
+PSQL Command: PGPASSWORD=d80acU2QMrrzv3FqUlKkRkZE5aBO5FQV psql -h dpg-d9nbvgbm8hqs73e1b7tg-a.oregon-postgres.render.com -U crm_db_pzqd_user crm_db_pzqd
