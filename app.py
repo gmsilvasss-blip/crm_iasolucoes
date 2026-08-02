@@ -3,6 +3,7 @@ from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, session
 from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
+import json
 
 app = Flask(__name__)
 
@@ -94,43 +95,56 @@ def logout():
 # --- ROTA 5: DASHBOARD (HOME) ---
 @app.route('/home')
 def home():
-    # Proteção da Rota: Se não tiver sessão ativa, expulsa pro login
     if 'usuario_id' not in session:
         return redirect(url_for('login'))
     
     proximo_compromisso = None
+    eventos_calendario = []
     
     try:
         conn = conectar_banco()
         cur = conn.cursor()
         
-        # Lógica: Busca o próximo compromisso a partir do momento atual (CURRENT_TIMESTAMP)
-        # Limitado a 1 resultado, ordenado do mais próximo para o mais distante.
-        query = """
+        # 1. Busca o próximo compromisso para exibir no card
+        cur.execute("""
             SELECT titulo_compromisso, data_hora 
             FROM agenda 
             WHERE usuario_id = %s AND data_hora >= CURRENT_TIMESTAMP 
             ORDER BY data_hora ASC 
             LIMIT 1
-        """
-        cur.execute(query, (session['usuario_id'],))
+        """, (session['usuario_id'],))
         resultado = cur.fetchone()
         
         if resultado:
-            # Formata a data e hora para mandar bonito pro HTML (ex: "14:30 - Reunião")
             titulo = resultado[0]
             hora_formatada = resultado[1].strftime('%H:%M')
             proximo_compromisso = f"{hora_formatada} - {titulo}"
             
+        # 2. Busca TODOS os compromissos do usuário para marcar no Calendário
+        cur.execute("""
+            SELECT titulo_compromisso, data_hora 
+            FROM agenda 
+            WHERE usuario_id = %s
+        """, (session['usuario_id'],))
+        todos_resultados = cur.fetchall()
+        
+        for t in todos_resultados:
+            eventos_calendario.append({
+                "titulo": t[0],
+                "data": t[1].strftime('%Y-%m-%d'),
+                "hora": t[1].strftime('%H:%M')
+            })
+            
         cur.close()
         conn.close()
     except Exception as e:
-        # Se a tabela 'agenda' ainda não existir, o script passa direto sem quebrar o app
-        print(f"Aviso - Tabela de agenda não encontrada ou erro: {e}")
+        print(f"Aviso - Banco de dados: {e}")
         pass
     
-    # Envia a variável proximo_compromisso para o template
-    return render_template('home.html', compromisso=proximo_compromisso)
+    # Envia o próximo compromisso e a lista completa (em formato JSON) para o HTML
+    return render_template('home.html', 
+                           compromisso=proximo_compromisso, 
+                           eventos_json=json.dumps(eventos_calendario))
 
 
 # --- ROTA 6: SALVAR NA AGENDA ---

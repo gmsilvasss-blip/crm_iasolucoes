@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - CRM IA Soluções</title>
     <style>
-        /* Base e Container */
+        /* Base e Container Mobile-First */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #000000;
@@ -46,11 +46,7 @@
             font-size: 1.4em;
             font-weight: bold;
         }
-        .logout-btn {
-            color: #666;
-            text-decoration: none;
-            font-size: 1.2em;
-        }
+        .logout-btn { color: #666; text-decoration: none; font-size: 1.2em; }
 
         /* Cards */
         .content { padding: 20px; }
@@ -73,17 +69,8 @@
             align-items: center;
             margin-bottom: 10px;
         }
-        .card-title {
-            font-weight: bold;
-            font-size: 1em;
-            color: #ffffff;
-            text-transform: uppercase;
-        }
-        .card-desc {
-            color: #888;
-            font-size: 0.9em;
-            margin: 0;
-        }
+        .card-title { font-weight: bold; font-size: 1em; color: #ffffff; text-transform: uppercase; }
+        .card-desc { color: #888; font-size: 0.9em; margin: 0; }
         .destaque-laranja { color: #ff8c00; font-weight: bold; }
 
         /* Barra Inferior */
@@ -99,88 +86,64 @@
             border-top: 1px solid #222;
         }
         .nav-item {
-            color: #666;
-            text-decoration: none;
-            font-size: 0.75em;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 5px;
-            text-transform: uppercase;
-            font-weight: bold;
+            color: #666; text-decoration: none; font-size: 0.75em;
+            display: flex; flex-direction: column; align-items: center; gap: 5px; text-transform: uppercase; font-weight: bold;
         }
         .nav-item.active { color: #ff8c00; }
 
-        /* MODAL DE AGENDAMENTO (Oculto por padrão) */
+        /* MODAL ESTRUTURA DUPLA */
         .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center;
         }
         .modal-content {
             background-color: #1e1e1e;
-            width: 90%;
-            max-width: 400px;
-            padding: 25px;
-            border-radius: 8px;
-            border: 1px solid #333;
+            width: 95%; max-width: 800px; /* Mais largo para caber as duas colunas */
+            padding: 25px; border-radius: 8px; border: 1px solid #333;
+            display: flex; flex-wrap: wrap; gap: 30px;
+            max-height: 90vh; overflow-y: auto;
         }
-        .modal-content h2 {
-            color: #ff8c00;
-            margin-top: 0;
-            font-size: 1.2em;
-            text-transform: uppercase;
+        .coluna { flex: 1; min-width: 300px; }
+
+        /* CALENDÁRIO VISUAL */
+        .calendario-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; color: #ff8c00; font-weight: bold;
         }
-        .form-group {
-            margin-bottom: 15px;
-            display: flex;
-            flex-direction: column;
+        .calendario-header button {
+            background: none; border: none; color: #e0e0e0; font-size: 1.2em; cursor: pointer;
         }
-        .form-group label {
-            color: #aaa;
-            font-size: 0.85em;
-            margin-bottom: 5px;
+        .dias-semana {
+            display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; color: #666; font-size: 0.8em; margin-bottom: 10px;
         }
-        .form-group input {
-            background-color: #121212;
-            border: 1px solid #333;
-            color: #fff;
-            padding: 12px;
-            border-radius: 4px;
-            font-size: 1em;
-            color-scheme: dark; /* Força o calendário nativo a ficar escuro */
+        .dias-grid {
+            display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px;
         }
-        .form-group input:focus {
-            outline: none;
-            border-color: #ff8c00;
+        .dia-celula {
+            background-color: #121212; padding: 10px 0; text-align: center; border-radius: 4px; cursor: pointer; border: 1px solid transparent; font-size: 0.9em; position: relative;
         }
-        .modal-actions {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 20px;
+        .dia-celula:hover { border-color: #555; }
+        .dia-celula.hoje { border-color: #ff8c00; color: #ff8c00; font-weight: bold; }
+        .dia-celula.selecionado { background-color: #ff8c00; color: #000; font-weight: bold; }
+        .dia-vazio { background-color: transparent; cursor: default; }
+        
+        /* Ponto laranja para dias com eventos */
+        .tem-evento::after {
+            content: ''; position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); width: 5px; height: 5px; background-color: #ff8c00; border-radius: 50%;
         }
-        .btn-cancelar {
-            background: transparent;
-            color: #aaa;
-            border: none;
-            padding: 10px 20px;
-            cursor: pointer;
-            font-size: 1em;
-        }
-        .btn-salvar {
-            background-color: #ff8c00;
-            color: #000;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 1em;
-        }
+
+        /* FORMULÁRIO E LISTA DE EVENTOS DO DIA */
+        .modal-content h2 { color: #ff8c00; margin-top: 0; font-size: 1.2em; text-transform: uppercase; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        .form-group { margin-bottom: 15px; display: flex; flex-direction: column; }
+        .form-group label { color: #aaa; font-size: 0.85em; margin-bottom: 5px; }
+        .form-group input { background-color: #121212; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 4px; font-size: 1em; color-scheme: dark; }
+        .form-group input:focus { outline: none; border-color: #ff8c00; }
+        
+        .eventos-do-dia { margin-top: 20px; font-size: 0.9em; color: #aaa; }
+        .evento-item { background: #252525; padding: 8px 12px; margin-bottom: 8px; border-left: 3px solid #ff8c00; border-radius: 4px; color: #fff; }
+
+        .modal-actions { display: flex; justify-content: space-between; margin-top: 20px; }
+        .btn-cancelar { background: transparent; color: #aaa; border: none; padding: 10px 20px; cursor: pointer; font-size: 1em; }
+        .btn-salvar { background-color: #ff8c00; color: #000; border: none; padding: 10px 20px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 1em; width: 100%; }
     </style>
 </head>
 <body>
@@ -194,14 +157,13 @@
         </header>
         
         <div class="content">
-            <!-- Card 1: Agenda (Clica e abre o modal) -->
+            <!-- Card da Agenda -->
             <div class="card" onclick="abrirModal()">
                 <div class="card-header">
                     <span class="card-title">Minha Agenda</span>
                     <span class="card-icon">📅</span>
                 </div>
                 <p class="card-desc">
-                    <!-- O Jinja2 lê o Python aqui: se tiver compromisso, mostra. Senão, mostra vazio. -->
                     {% if compromisso %}
                         <span class="destaque-laranja">Próximo:</span> {{ compromisso }}
                     {% else %}
@@ -210,12 +172,8 @@
                 </p>
             </div>
             
-            <!-- Outros Cards -->
             <a href="#" class="card">
-                <div class="card-header">
-                    <span class="card-title">Base de Leads</span>
-                    <span class="card-icon">📊</span>
-                </div>
+                <div class="card-header"><span class="card-title">Base de Leads</span><span class="card-icon">📊</span></div>
                 <p class="card-desc">Gerencie suas oportunidades.</p>
             </a>
         </div>
@@ -227,32 +185,147 @@
         </div>
     </div>
 
-    <!-- ESTRUTURA DO MODAL (Escondida) -->
+    <!-- MODAL DUPLO (Calendário + Formulário) -->
     <div class="modal-overlay" id="modalAgenda">
         <div class="modal-content">
-            <h2>Novo Compromisso</h2>
-            <form action="/minha_agenda" method="POST">
-                <div class="form-group">
-                    <label>Título / Lead</label>
-                    <input type="text" name="titulo_compromisso" placeholder="Ex: Reunião com João" required>
+            
+            <!-- Coluna 1: Calendário Visual -->
+            <div class="coluna">
+                <div class="calendario-header">
+                    <button onclick="mudarMes(-1)">&#10094;</button>
+                    <span id="mes-ano-display">Agosto 2026</span>
+                    <button onclick="mudarMes(1)">&#10095;</button>
                 </div>
-                <div class="form-group">
-                    <label>Data e Hora</label>
-                    <!-- Type datetime-local abre o calendário e relógio no celular -->
-                    <input type="datetime-local" name="data_hora" required>
+                <div class="dias-semana">
+                    <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sab</span>
                 </div>
-                <div class="modal-actions">
-                    <button type="button" class="btn-cancelar" onclick="fecharModal()">Cancelar</button>
-                    <button type="submit" class="btn-salvar">Salvar Agenda</button>
+                <div class="dias-grid" id="dias-grid">
+                    <!-- Os dias serão gerados via JavaScript -->
                 </div>
-            </form>
+                
+                <div class="eventos-do-dia" id="lista-eventos-dia">
+                    <!-- Eventos do dia clicado aparecerão aqui -->
+                    <p>Selecione um dia no calendário.</p>
+                </div>
+            </div>
+
+            <!-- Coluna 2: Formulário de Agendamento -->
+            <div class="coluna">
+                <h2>Novo Compromisso</h2>
+                <form action="/minha_agenda" method="POST">
+                    <div class="form-group">
+                        <label>Título / Lead</label>
+                        <input type="text" name="titulo_compromisso" placeholder="Ex: Reunião de Fechamento" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Data e Hora (Selecione no calendário ao lado ou digite)</label>
+                        <!-- O Javascript preencherá a data deste input quando um dia for clicado -->
+                        <input type="datetime-local" id="input-data-hora" name="data_hora" required>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="submit" class="btn-salvar">Salvar Agenda</button>
+                    </div>
+                    <div class="modal-actions" style="margin-top: 10px;">
+                        <button type="button" class="btn-cancelar" style="width: 100%; text-align: center;" onclick="fecharModal()">Cancelar e Fechar</button>
+                    </div>
+                </form>
+            </div>
+
         </div>
     </div>
 
-    <!-- SCRIPT SIMPLES PARA ABRIR/FECHAR O MODAL -->
+    <!-- LOGICA DO CALENDÁRIO -->
     <script>
+        // Recebe os eventos do Flask em formato JSON
+        const eventosBanco = JSON.parse('{{ eventos_json | safe if eventos_json else "[]" }}');
+        
+        let dataAtual = new Date();
+        let mesAtual = dataAtual.getMonth();
+        let anoAtual = dataAtual.getFullYear();
+        let diaSelecionado = null;
+
+        const mesesNomes = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+        function renderizarCalendario() {
+            const grid = document.getElementById('dias-grid');
+            grid.innerHTML = '';
+            document.getElementById('mes-ano-display').innerText = `${mesesNomes[mesAtual]} ${anoAtual}`;
+
+            const primeiroDia = new Date(anoAtual, mesAtual, 1).getDay();
+            const diasNoMes = new Date(anoAtual, mesAtual + 1, 0).getDate();
+
+            // Células vazias para alinhar os dias da semana
+            for (let i = 0; i < primeiroDia; i++) {
+                let divVazia = document.createElement('div');
+                divVazia.className = 'dia-celula dia-vazio';
+                grid.appendChild(divVazia);
+            }
+
+            // Cria os dias do mês
+            for (let dia = 1; dia <= diasNoMes; dia++) {
+                let divDia = document.createElement('div');
+                divDia.className = 'dia-celula';
+                divDia.innerText = dia;
+                
+                // Formata a data atual do loop para YYYY-MM-DD
+                let mesFormatado = String(mesAtual + 1).padStart(2, '0');
+                let diaFormatado = String(dia).padStart(2, '0');
+                let dataLoop = `${anoAtual}-${mesFormatado}-${diaFormatado}`;
+
+                // Verifica se é o dia de HOJE
+                let hoje = new Date();
+                if (dia === hoje.getDate() && mesAtual === hoje.getMonth() && anoAtual === hoje.getFullYear()) {
+                    divDia.classList.add('hoje');
+                }
+
+                // Verifica se há eventos neste dia no banco de dados
+                let eventosNesteDia = eventosBanco.filter(e => e.data === dataLoop);
+                if (eventosNesteDia.length > 0) {
+                    divDia.classList.add('tem-evento');
+                }
+
+                // Ação ao CLICAR no dia
+                divDia.onclick = () => {
+                    // Remove seleção anterior
+                    document.querySelectorAll('.dia-celula').forEach(el => el.classList.remove('selecionado'));
+                    divDia.classList.add('selecionado');
+                    
+                    // Atualiza o input de Data e Hora no formulário
+                    document.getElementById('input-data-hora').value = `${dataLoop}T09:00`; 
+                    
+                    // Mostra os eventos do dia na listagem embaixo do calendário
+                    mostrarEventosDoDia(dataLoop, eventosNesteDia);
+                };
+
+                grid.appendChild(divDia);
+            }
+        }
+
+        function mostrarEventosDoDia(data, eventos) {
+            const painel = document.getElementById('lista-eventos-dia');
+            if (eventos.length === 0) {
+                painel.innerHTML = `<p style="color: #666;">Agenda livre neste dia.</p>`;
+                return;
+            }
+            
+            let html = `<strong>Compromissos do dia:</strong><br><br>`;
+            eventos.forEach(ev => {
+                html += `<div class="evento-item">${ev.hora} - ${ev.titulo}</div>`;
+            });
+            painel.innerHTML = html;
+        }
+
+        function mudarMes(direcao) {
+            mesAtual += direcao;
+            if (mesAtual > 11) { mesAtual = 0; anoAtual++; }
+            else if (mesAtual < 0) { mesAtual = 11; anoAtual--; }
+            renderizarCalendario();
+        }
+
+        // Funções do Modal
         function abrirModal() {
             document.getElementById('modalAgenda').style.display = 'flex';
+            renderizarCalendario(); // Renderiza sempre que abrir para garantir a data atual
         }
         function fecharModal() {
             document.getElementById('modalAgenda').style.display = 'none';
