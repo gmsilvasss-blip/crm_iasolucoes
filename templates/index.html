@@ -1,0 +1,27 @@
+<script>
+    async function fazerLogin() {
+        const emailInput = document.getElementById('login').value;
+        const senhaInput = document.getElementById('senha').value;
+
+        const resposta = await fetch('/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                login: emailInput,
+                senha: senhaInput
+            })
+        });
+
+        const dados = await resposta.json();
+
+        if (resposta.ok) {
+            // Se o login for aprovado, redireciona para a tela interna
+            window.location.href = dados.redirecionar;
+        } else {
+            // Exibe o erro devolvido pelo backend
+            alert(dados.erro);
+        }
+    }
+</script>
