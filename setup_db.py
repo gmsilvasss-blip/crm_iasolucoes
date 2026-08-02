@@ -1,16 +1,21 @@
 import psycopg2
 
-# Sua URL do Render
 DATABASE_URL_EXTERNA = "postgresql://crm_db_pzqd_user:d80acU2QMrrzv3FqUlKkRkZE5aBO5FQV@dpg-d9nbvgbm8hqs73e1b7tg-a.oregon-postgres.render.com/crm_db_pzqd"
 
-def criar_tabelas_leads():
+def reparo_banco():
     try:
-        print("Conectando ao banco de dados no Render...")
         conn = psycopg2.connect(DATABASE_URL_EXTERNA)
         cur = conn.cursor()
         
-        # 1. Tabela Principal de Leads
-        query_leads = """
+        print("Verificando estrutura do banco de dados...")
+
+        # 1. Repara a tabela agenda (garante que status e observacoes existem)
+        cur.execute("ALTER TABLE agenda ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'Pendente';")
+        cur.execute("ALTER TABLE agenda ADD COLUMN IF NOT EXISTS observacoes TEXT;")
+        cur.execute("UPDATE agenda SET status = 'Pendente' WHERE status IS NULL;")
+        
+        # 2. Garante que a tabela de Leads existe (caso o setup anterior não tenha rodado)
+        cur.execute("""
         CREATE TABLE IF NOT EXISTS leads (
             id SERIAL PRIMARY KEY,
             usuario_id INTEGER REFERENCES usuarios(id) ON DELETE CASCADE,
@@ -19,27 +24,15 @@ def criar_tabelas_leads():
             interesse VARCHAR(255),
             contato VARCHAR(50)
         );
-        """
-        cur.execute(query_leads)
-        
-        # 2. Tabela de Notas Contínuas (Histórico)
-        query_notas = """
-        CREATE TABLE IF NOT EXISTS notas_leads (
-            id SERIAL PRIMARY KEY,
-            lead_id INTEGER REFERENCES leads(id) ON DELETE CASCADE,
-            nota VARCHAR(300) NOT NULL,
-            data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-        """
-        cur.execute(query_notas)
+        """)
         
         conn.commit()
         cur.close()
         conn.close()
-        print("Sucesso! Tabelas 'leads' e 'notas_leads' criadas.")
+        print("Sucesso! Reparo concluído. Todas as colunas e tabelas estão prontas.")
         
     except Exception as e:
-        print(f"Ocorreu um erro: {e}")
+        print(f"Ocorreu um erro ao reparar o banco: {e}")
 
 if __name__ == '__main__':
-    criar_tabelas_leads()
+    reparo_banco()

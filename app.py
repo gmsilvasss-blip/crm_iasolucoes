@@ -153,32 +153,33 @@ def home():
                            leads=lista_leads)
 
 
-# --- ROTA 6: SALVAR NA AGENDA ---
+# --- ROTA 6: SALVAR NOVO COMPROMISSO ---
 @app.route('/minha_agenda', methods=['POST'])
 def minha_agenda():
-    if 'usuario_id' not in session:
+    if 'usuario_id' not in session: 
         return redirect(url_for('login'))
         
     titulo = request.form.get('titulo_compromisso')
-    data_hora = request.form.get('data_hora') # Espera o formato YYYY-MM-DD HH:MM
+    data_str = request.form.get('data_compromisso') # O HTML agora envia isso separado
+    hora_str = request.form.get('hora_compromisso') # A nova listbox envia isso
+    
+    # Junta os dois para o formato que o PostgreSQL exige (YYYY-MM-DD HH:MM:00)
+    data_hora_completa = f"{data_str} {hora_str}:00"
     
     try:
         conn = conectar_banco()
         cur = conn.cursor()
-        
-        # Insere o compromisso atrelado ao ID do usuário logado
         cur.execute(
             "INSERT INTO agenda (usuario_id, titulo_compromisso, data_hora, status) VALUES (%s, %s, %s, 'Pendente')",
-            (session['usuario_id'], titulo, data_hora)
+            (session['usuario_id'], titulo, data_hora_completa)
         )
         conn.commit()
         cur.close()
         conn.close()
-        
     except Exception as e:
-        print(f"Erro ao salvar na agenda: {e}")
+        # Se falhar novamente, agora o erro vai aparecer no terminal do Render/VSCode para podermos ver!
+        print(f"Erro Crítico na Agenda: {e}") 
         
-    # Redireciona de volta para a Home para ver o card atualizado
     return redirect(url_for('home'))
 
 # --- ROTA 7: TELA DA BASE DE LEADS ---

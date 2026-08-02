@@ -136,7 +136,7 @@
             <!-- Coluna 2: Formulário -->
             <div class="coluna">
                 <h2>Agendar Novo</h2>
-                <form action="/minha_agenda" method="POST">
+                <form action="/minha_agenda" method="POST" onsubmit="if(!document.getElementById('input-data').value) { alert('⚠️ Por favor, clique em um dia no calendário antes de salvar!'); return false; }">
                     
                     <!-- NOVO: Select de Leads -->
                     <div class="form-group">
