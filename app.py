@@ -1,9 +1,9 @@
 import os
+import json
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, session
 from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
-import json
 
 app = Flask(__name__)
 
@@ -13,26 +13,24 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 # --- FUNÇÃO AUXILIAR: CONEXÃO COM O BANCO ---
 def conectar_banco():
-    """Cria e retorna uma conexão com o banco de dados PostgreSQL."""
     return psycopg2.connect(DATABASE_URL)
 
 
-# --- ROTA 1: TELA INICIAL PÚBLICA ---
+# ==========================================
+# MÓDULO: AUTENTICAÇÃO
+# ==========================================
+
 @app.route('/')
 def inicio():
-    # Se o usuário já estiver logado e tentar acessar a raiz, joga direto pro Dashboard
     if 'usuario_id' in session:
         return redirect(url_for('home'))
     return render_template('inicio.html')
 
-
-# --- ROTA 2: TELA DE LOGIN ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         email = request.form.get('email')
         senha = request.form.get('senha')
-
         try:
             conn = conectar_banco()
             cur = conn.cursor()
@@ -46,21 +44,16 @@ def login():
                 return redirect(url_for('home'))
             else:
                 return "<h1>Erro: E-mail ou senha incorretos.</h1><br><a href='/login'>Tentar novamente</a>", 401
-
         except Exception as e:
             return f"<h1>Falha na conexão com o banco de dados.</h1><p>Erro: {e}</p>", 500
-
     return render_template('login.html')
 
-
-# --- ROTA 3: TELA DE REGISTRO ---
 @app.route('/registro', methods=['GET', 'POST'])
 def registro():
     if request.method == 'POST':
         email = request.form.get('email')
         telefone = request.form.get('telefone')
         senha = request.form.get('senha')
-        
         senha_criptografada = generate_password_hash(senha)
         
         try:
@@ -73,26 +66,23 @@ def registro():
             conn.commit()
             cur.close()
             conn.close()
-            
             return redirect(url_for('login'))
-            
         except psycopg2.IntegrityError:
             return "<h1>Erro: Este e-mail já está cadastrado.</h1><br><a href='/registro'>Tentar novamente</a>", 400
         except Exception as e:
             return f"<h1>Erro interno ao tentar cadastrar.</h1><p>Erro: {e}</p>", 500
-
     return render_template('registro.html')
 
-
-# --- ROTA 4: LOGOUT (SAIR DO SISTEMA) ---
 @app.route('/logout')
 def logout():
-    # Remove o ID do usuário da sessão atual e joga pra tela inicial
     session.pop('usuario_id', None)
     return redirect(url_for('inicio'))
 
 
-# --- ROTA 5: DASHBOARD (HOME) ---
+# ==========================================
+# MÓDULO: AGENDA E DASHBOARD
+# ==========================================
+
 @app.route('/home')
 def home():
     if 'usuario_id' not in session:
@@ -100,7 +90,7 @@ def home():
     
     proximo_compromisso = None
     eventos_calendario = []
-    lista_leads = [] # Nova lista para guardar os leads
+    lista_leads = [] 
     
     try:
         conn = conectar_banco()
@@ -135,10 +125,9 @@ def home():
                 "obs": t[4] if t[4] else ""
             })
             
-        # 3. NOVO: Busca todos os leads para preencher o campo de seleção
+        # 3. Busca todos os leads para o dropdown de agendamento
         cur.execute("SELECT nome, empresa FROM leads WHERE usuario_id = %s ORDER BY nome ASC", (session['usuario_id'],))
-        leads_db = cur.fetchall()
-        for l in leads_db:
+        for l in cur.fetchall():
             lista_leads.append({"nome": l[0], "empresa": l[1]})
             
         cur.close()
@@ -146,24 +135,15 @@ def home():
     except Exception as e:
         print(f"Erro BD Home: {e}")
     
-    # Adicionamos 'leads=lista_leads' aqui no retorno
-    return render_template('home.html', 
-                           compromisso=proximo_compromisso, 
-                           eventos_json=json.dumps(eventos_calendario),
-                           leads=lista_leads)
+    return render_template('home.html', compromisso=proximo_compromisso, eventos_json=json.dumps(eventos_calendario), leads=lista_leads)
 
-
-# --- ROTA 6: SALVAR NOVO COMPROMISSO ---
 @app.route('/minha_agenda', methods=['POST'])
 def minha_agenda():
-    if 'usuario_id' not in session: 
-        return redirect(url_for('login'))
+    if 'usuario_id' not in session: return redirect(url_for('login'))
         
     titulo = request.form.get('titulo_compromisso')
-    data_str = request.form.get('data_compromisso') # O HTML agora envia isso separado
-    hora_str = request.form.get('hora_compromisso') # A nova listbox envia isso
-    
-    # Junta os dois para o formato que o PostgreSQL exige (YYYY-MM-DD HH:MM:00)
+    data_str = request.form.get('data_compromisso') 
+    hora_str = request.form.get('hora_compromisso') 
     data_hora_completa = f"{data_str} {hora_str}:00"
     
     try:
@@ -177,16 +157,13 @@ def minha_agenda():
         cur.close()
         conn.close()
     except Exception as e:
-        # Se falhar novamente, agora o erro vai aparecer no terminal do Render/VSCode para podermos ver!
-        print(f"Erro Crítico na Agenda: {e}") 
+        print(f"Erro Agenda: {e}")
         
     return redirect(url_for('home'))
 
-# --- ROTA 7: SALVAR FEEDBACK DO COMPROMISSO ---
 @app.route('/salvar_feedback', methods=['POST'])
 def salvar_feedback():
-    if 'usuario_id' not in session: 
-        return redirect(url_for('login'))
+    if 'usuario_id' not in session: return redirect(url_for('login'))
     
     evento_id = request.form.get('evento_id')
     observacoes = request.form.get('observacoes')
@@ -197,23 +174,16 @@ def salvar_feedback():
         cur = conn.cursor()
         
         if acao == 'excluir':
-            # Apaga do banco
             cur.execute("DELETE FROM agenda WHERE id = %s AND usuario_id = %s", (evento_id, session['usuario_id']))
-            
         elif acao == 'reagendar':
-            # Pega as novas escolhas de data e hora
             nova_data = request.form.get('data_compromisso')
             nova_hora = request.form.get('hora_compromisso')
             data_hora_completa = f"{nova_data} {nova_hora}:00"
-            
-            # Salva o andamento e volta o status para Pendente com a nova data
             cur.execute(
                 "UPDATE agenda SET observacoes = %s, status = 'Pendente', data_hora = %s WHERE id = %s AND usuario_id = %s",
                 (observacoes, data_hora_completa, evento_id, session['usuario_id'])
             )
-            
         else:
-            # Concluir
             cur.execute(
                 "UPDATE agenda SET observacoes = %s, status = 'Concluído' WHERE id = %s AND usuario_id = %s",
                 (observacoes, evento_id, session['usuario_id'])
@@ -228,7 +198,45 @@ def salvar_feedback():
     return redirect(url_for('home'))
 
 
-# --- ROTA 8: CADASTRAR NOVO LEAD ---
+# ==========================================
+# MÓDULO: BASE DE LEADS
+# ==========================================
+
+@app.route('/base_leads')
+def base_leads():
+    if 'usuario_id' not in session: return redirect(url_for('login'))
+    
+    leads_processados = []
+    try:
+        conn = conectar_banco()
+        cur = conn.cursor()
+        
+        cur.execute("SELECT id, nome, empresa, interesse, contato FROM leads WHERE usuario_id = %s ORDER BY id DESC", (session['usuario_id'],))
+        leads_db = cur.fetchall()
+        
+        for l in leads_db:
+            lead_id = l[0]
+            cur.execute("SELECT nota, data_criacao FROM notas_leads WHERE lead_id = %s ORDER BY data_criacao DESC", (lead_id,))
+            notas_db = cur.fetchall()
+            
+            lista_notas = [{"texto": n[0], "data": n[1].strftime('%d/%m/%Y %H:%M')} for n in notas_db]
+            
+            leads_processados.append({
+                "id": lead_id,
+                "nome": l[1],
+                "empresa": l[2],
+                "interesse": l[3],
+                "contato": l[4],
+                "notas": lista_notas
+            })
+            
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print(f"Erro ao carregar leads: {e}")
+        
+    return render_template('base_leads.html', leads=leads_processados)
+
 @app.route('/cadastrar_lead', methods=['POST'])
 def cadastrar_lead():
     if 'usuario_id' not in session: return redirect(url_for('login'))
@@ -242,15 +250,12 @@ def cadastrar_lead():
     try:
         conn = conectar_banco()
         cur = conn.cursor()
-        
-        # Insere o lead e retorna o ID gerado para podermos atrelar a nota inicial
         cur.execute(
             "INSERT INTO leads (usuario_id, nome, empresa, interesse, contato) VALUES (%s, %s, %s, %s, %s) RETURNING id",
             (session['usuario_id'], nome, empresa, interesse, contato)
         )
         novo_lead_id = cur.fetchone()[0]
         
-        # Se o usuário preencheu uma nota inicial, já salva no histórico
         if nota_inicial:
             cur.execute("INSERT INTO notas_leads (lead_id, nota) VALUES (%s, %s)", (novo_lead_id, nota_inicial[:300]))
             
@@ -262,8 +267,6 @@ def cadastrar_lead():
         
     return redirect(url_for('base_leads'))
 
-
-# --- ROTA 9: EDITAR LEAD ---
 @app.route('/editar_lead', methods=['POST'])
 def editar_lead():
     if 'usuario_id' not in session: return redirect(url_for('login'))
@@ -277,7 +280,6 @@ def editar_lead():
     try:
         conn = conectar_banco()
         cur = conn.cursor()
-        # Garante que só edita se o lead for do usuário logado
         cur.execute(
             "UPDATE leads SET nome=%s, empresa=%s, interesse=%s, contato=%s WHERE id=%s AND usuario_id=%s",
             (nome, empresa, interesse, contato, lead_id, session['usuario_id'])
@@ -290,18 +292,14 @@ def editar_lead():
         
     return redirect(url_for('base_leads'))
 
-
-# --- ROTA 10: DELETAR LEAD ---
 @app.route('/deletar_lead', methods=['POST'])
 def deletar_lead():
     if 'usuario_id' not in session: return redirect(url_for('login'))
     
     lead_id = request.form.get('lead_id')
-    
     try:
         conn = conectar_banco()
         cur = conn.cursor()
-        # O "ON DELETE CASCADE" no banco fará com que as notas sejam apagadas automaticamente
         cur.execute("DELETE FROM leads WHERE id=%s AND usuario_id=%s", (lead_id, session['usuario_id']))
         conn.commit()
         cur.close()
@@ -311,8 +309,6 @@ def deletar_lead():
         
     return redirect(url_for('base_leads'))
 
-
-# --- ROTA 11: ADICIONAR NOTA CONTÍNUA ---
 @app.route('/adicionar_nota', methods=['POST'])
 def adicionar_nota():
     if 'usuario_id' not in session: return redirect(url_for('login'))
@@ -324,7 +320,6 @@ def adicionar_nota():
         try:
             conn = conectar_banco()
             cur = conn.cursor()
-            # Limita a nota a 300 caracteres no Python por segurança
             cur.execute("INSERT INTO notas_leads (lead_id, nota) VALUES (%s, %s)", (lead_id, nova_nota[:300]))
             conn.commit()
             cur.close()
