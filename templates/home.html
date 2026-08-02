@@ -136,9 +136,10 @@
             <!-- Coluna 2: Formulário -->
             <div class="coluna">
                 <h2>Agendar Novo</h2>
+                <!-- TRAVA DE SEGURANÇA: Exige seleção de data no calendário -->
                 <form action="/minha_agenda" method="POST" onsubmit="if(!document.getElementById('input-data').value) { alert('⚠️ Por favor, clique em um dia no calendário antes de salvar!'); return false; }">
                     
-                    <!-- NOVO: Select de Leads -->
+                    <!-- Select de Leads -->
                     <div class="form-group">
                         <label>Selecionar Lead</label>
                         <select name="titulo_compromisso" id="select-lead" required onchange="verificarNovoLead(this)">
@@ -196,12 +197,20 @@
                 <input type="hidden" name="evento_id" id="input-evento-id">
                 
                 <div class="form-group">
-                    <label>Como foi? (Resumo da interação)</label>
+                    <label>Como foi? (Obrigatório para prosseguir)</label>
                     <textarea name="observacoes" id="input-observacoes" placeholder="Ex: Cliente achou caro, pediu para retornar na sexta..." required></textarea>
                 </div>
                 
-                <div class="modal-actions"><button type="submit" class="btn-salvar" style="background-color: #4CAF50; color: white;">Concluir Compromisso</button></div>
-                <div class="modal-actions" style="margin-top: 5px;"><button type="button" class="btn-cancelar" onclick="fecharModais()">Cancelar</button></div>
+                <!-- Nova estrutura de botões em coluna exigindo a nota -->
+                <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
+                    <button type="submit" name="acao" value="concluir" class="btn-salvar" style="background-color: #4CAF50; color: white;">✅ Concluir Compromisso</button>
+                    
+                    <button type="submit" name="acao" value="reagendar" class="btn-salvar" style="background-color: #2196F3; color: white;">🔄 Reagendar</button>
+                    
+                    <button type="submit" name="acao" value="excluir" class="btn-salvar" style="background-color: #f44336; color: white;">🗑️ Excluir</button>
+                    
+                    <button type="button" class="btn-cancelar" onclick="fecharModais()" style="margin-top: 5px;">Cancelar</button>
+                </div>
             </form>
         </div>
     </div>
@@ -259,7 +268,7 @@
             }
         }
 
-        // MOSTRAR EVENTOS ABAIXO DO CALENDÁRIO
+        // MOSTRAR EVENTOS ABAIXO DO CALENDÁRIO COM NOVOS ÍCONES
         function mostrarEventosDoDia(eventos) {
             const painel = document.getElementById('lista-eventos-dia');
             if (eventos.length === 0) {
@@ -269,8 +278,13 @@
             
             let html = `<strong style="color: #fff; display: block; margin-bottom: 10px;">Clique em um evento para registrar andamento:</strong>`;
             eventos.forEach(ev => {
-                let classeExtra = ev.status === 'Concluído' ? 'evento-concluido' : '';
-                let icone = ev.status === 'Concluído' ? '✅' : '⏳';
+                // Se não for 'Pendente', deixa a cor apagada indicando que já foi tratado
+                let classeExtra = ev.status !== 'Pendente' ? 'evento-concluido' : '';
+                
+                // Define o ícone com base no status do banco de dados
+                let icone = '⏳';
+                if (ev.status === 'Concluído') icone = '✅';
+                if (ev.status === 'Reagendado') icone = '🔄';
                 
                 // Limpa as aspas do banco para não quebrar o JS
                 let obsLimpa = ev.obs.replace(/'/g, "\\'").replace(/"/g, '&quot;');
@@ -308,7 +322,7 @@
             document.getElementById('modalFeedback').style.display = 'none';
         }
 
-        // NOVO: FORÇAR CRIAÇÃO DE LEAD PELA AGENDA
+        // FORÇAR CRIAÇÃO DE LEAD PELA AGENDA
         function verificarNovoLead(selectElement) {
             if (selectElement.value === 'NOVO_LEAD') {
                 window.location.href = '/base_leads';

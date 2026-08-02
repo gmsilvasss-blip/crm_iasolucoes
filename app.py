@@ -182,46 +182,43 @@ def minha_agenda():
         
     return redirect(url_for('home'))
 
-# --- ROTA 7: TELA DA BASE DE LEADS ---
-@app.route('/base_leads')
-def base_leads():
-    if 'usuario_id' not in session:
+# --- ROTA 7: SALVAR FEEDBACK DO COMPROMISSO ---
+@app.route('/salvar_feedback', methods=['POST'])
+def salvar_feedback():
+    if 'usuario_id' not in session: 
         return redirect(url_for('login'))
     
-    leads_processados = []
+    evento_id = request.form.get('evento_id')
+    observacoes = request.form.get('observacoes')
+    acao = request.form.get('acao') # NOVO: Pega qual botão foi clicado
     
     try:
         conn = conectar_banco()
         cur = conn.cursor()
         
-        # Busca todos os leads do usuário logado
-        cur.execute("SELECT id, nome, empresa, interesse, contato FROM leads WHERE usuario_id = %s ORDER BY id DESC", (session['usuario_id'],))
-        leads_db = cur.fetchall()
-        
-        # Para cada lead, busca o histórico de notas
-        for l in leads_db:
-            lead_id = l[0]
-            cur.execute("SELECT nota, data_criacao FROM notas_leads WHERE lead_id = %s ORDER BY data_criacao DESC", (lead_id,))
-            notas_db = cur.fetchall()
+        if acao == 'excluir':
+            # Exclui o compromisso permanentemente
+            cur.execute("DELETE FROM agenda WHERE id = %s AND usuario_id = %s", (evento_id, session['usuario_id']))
+        elif acao == 'reagendar':
+            # Atualiza para Reagendado (sai da lista pendente, mas mantém o histórico)
+            cur.execute(
+                "UPDATE agenda SET observacoes = %s, status = 'Reagendado' WHERE id = %s AND usuario_id = %s",
+                (observacoes, evento_id, session['usuario_id'])
+            )
+        else:
+            # Atualiza para Concluído (comportamento padrão)
+            cur.execute(
+                "UPDATE agenda SET observacoes = %s, status = 'Concluído' WHERE id = %s AND usuario_id = %s",
+                (observacoes, evento_id, session['usuario_id'])
+            )
             
-            # Formata as notas para a tela
-            lista_notas = [{"texto": n[0], "data": n[1].strftime('%d/%m/%Y %H:%M')} for n in notas_db]
-            
-            leads_processados.append({
-                "id": lead_id,
-                "nome": l[1],
-                "empresa": l[2],
-                "interesse": l[3],
-                "contato": l[4],
-                "notas": lista_notas
-            })
-            
+        conn.commit()
         cur.close()
         conn.close()
     except Exception as e:
-        print(f"Erro ao carregar leads: {e}")
+        print(f"Erro Feedback: {e}")
         
-    return render_template('base_leads.html', leads=leads_processados)
+    return redirect(url_for('home'))
 
 
 # --- ROTA 8: CADASTRAR NOVO LEAD ---
