@@ -5,17 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - CRM IA Soluções</title>
     <style>
-        /* Base e Container Mobile-First */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #000000; color: #e0e0e0; margin: 0; padding: 0; display: flex; justify-content: center; }
         .app-container { width: 100%; max-width: 480px; background-color: #121212; min-height: 100vh; position: relative; padding-bottom: 80px; box-sizing: border-box; }
         
-        /* Cabeçalho */
         header { padding: 25px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; }
         .header-info h1 { color: #ff8c00; font-size: 1.1em; margin: 0; text-transform: uppercase; letter-spacing: 2px; }
         .header-info p { margin: 5px 0 0 0; color: #e0e0e0; font-size: 1.4em; font-weight: bold; }
         .logout-btn { color: #666; text-decoration: none; font-size: 1.2em; }
         
-        /* Cards */
         .content { padding: 20px; }
         .card { background-color: #1e1e1e; border-radius: 6px; padding: 20px; margin-bottom: 15px; cursor: pointer; border-left: 3px solid transparent; transition: all 0.2s ease; display: block; color: inherit; text-decoration: none; }
         .card:hover { border-left-color: #ff8c00; background-color: #252525; }
@@ -24,21 +21,17 @@
         .card-desc { color: #888; font-size: 0.9em; margin: 0; }
         .destaque-laranja { color: #ff8c00; font-weight: bold; }
         
-        /* Barra Inferior */
         .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 480px; background-color: #0a0a0a; display: flex; justify-content: space-around; padding: 15px 0; border-top: 1px solid #222; }
         .nav-item { color: #666; text-decoration: none; font-size: 0.75em; display: flex; flex-direction: column; align-items: center; gap: 5px; text-transform: uppercase; font-weight: bold; }
         .nav-item.active { color: #ff8c00; }
 
-        /* MODAIS ESTRUTURA */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background-color: #1e1e1e; width: 95%; max-width: 800px; padding: 25px; border-radius: 8px; border: 1px solid #333; display: flex; flex-wrap: wrap; gap: 30px; max-height: 90vh; overflow-y: auto; }
         
-        /* Modal Feedback (Menor) */
         .modal-feedback { max-width: 400px; display: block; }
         .modal-feedback textarea { width: 100%; height: 100px; background-color: #121212; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 4px; resize: none; font-family: inherit; box-sizing: border-box;}
         .modal-feedback textarea:focus { outline: none; border-color: #ff8c00; }
 
-        /* CALENDÁRIO VISUAL */
         .coluna { flex: 1; min-width: 300px; }
         .calendario-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; color: #ff8c00; font-weight: bold; }
         .calendario-header button { background: none; border: none; color: #e0e0e0; font-size: 1.2em; cursor: pointer; }
@@ -51,27 +44,22 @@
         .dia-vazio { background-color: transparent; cursor: default; }
         .tem-evento::after { content: ''; position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); width: 5px; height: 5px; background-color: #ff8c00; border-radius: 50%; }
 
-        /* FORMULÁRIO GERAL */
         .modal-content h2 { color: #ff8c00; margin-top: 0; font-size: 1.2em; text-transform: uppercase; border-bottom: 1px solid #333; padding-bottom: 10px; }
         .form-group { margin-bottom: 15px; display: flex; flex-direction: column; }
         .form-group label { color: #aaa; font-size: 0.85em; margin-bottom: 5px; }
         
-        /* Inputs e Selects padronizados */
         .form-group input, .form-group select { background-color: #121212; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 4px; font-size: 1em; box-sizing: border-box;}
         .form-group input:focus, .form-group select:focus { outline: none; border-color: #ff8c00; }
         .input-data-visual { background-color: #222 !important; color: #888 !important; cursor: not-allowed; text-align: center; font-weight: bold;}
         
-        /* Lista de Eventos */
         .eventos-do-dia { margin-top: 20px; font-size: 0.9em; color: #aaa; }
         .evento-item { background: #252525; padding: 12px; margin-bottom: 8px; border-left: 3px solid #ff8c00; border-radius: 4px; color: #fff; cursor: pointer; transition: background 0.2s; }
         .evento-item:hover { background: #333; }
-        .evento-concluido { border-left: 3px solid #4CAF50; opacity: 0.7; }
         .evento-item small { display: block; color: #888; font-size: 0.8em; margin-top: 5px; }
 
-        /* Botões */
         .modal-actions { display: flex; justify-content: space-between; margin-top: 20px; }
         .btn-cancelar { background: transparent; color: #aaa; border: none; padding: 10px 20px; cursor: pointer; font-size: 1em; width: 100%; text-align: center; }
-        .btn-salvar { background-color: #ff8c00; color: #000; border: none; padding: 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 1em; width: 100%; }
+        .btn-salvar { background-color: #ff8c00; color: #000; border: none; padding: 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 1em; width: 100%; text-transform: uppercase; }
     </style>
 </head>
 <body>
@@ -85,7 +73,6 @@
         </header>
         
         <div class="content">
-            <!-- Card da Agenda -->
             <div class="card" onclick="abrirModalAgenda()">
                 <div class="card-header">
                     <span class="card-title">Minha Agenda</span><span class="card-icon">📅</span>
@@ -99,7 +86,6 @@
                 </p>
             </div>
 
-            <!-- Card Base de Leads vinculado à nova tela -->
             <a href="/base_leads" class="card">
                 <div class="card-header"><span class="card-title">Base de Leads</span><span class="card-icon">📊</span></div>
                 <p class="card-desc">Gerencie suas oportunidades.</p>
@@ -113,10 +99,8 @@
         </div>
     </div>
 
-    <!-- MODAL 1: CALENDÁRIO E NOVO COMPROMISSO -->
     <div class="modal-overlay" id="modalAgenda">
         <div class="modal-content">
-            <!-- Coluna 1: Calendário -->
             <div class="coluna">
                 <div class="calendario-header">
                     <button onclick="mudarMes(-1)">&#10094;</button>
@@ -127,67 +111,52 @@
                     <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sab</span>
                 </div>
                 <div class="dias-grid" id="dias-grid"></div>
-                
-                <div class="eventos-do-dia" id="lista-eventos-dia">
-                    <p>Selecione um dia no calendário.</p>
-                </div>
+                <div class="eventos-do-dia" id="lista-eventos-dia"><p>Selecione um dia no calendário.</p></div>
             </div>
 
-            <!-- Coluna 2: Formulário -->
             <div class="coluna">
-                <h2>Agendar Novo</h2>
-                <!-- TRAVA DE SEGURANÇA: Exige seleção de data no calendário -->
-                <form action="/minha_agenda" method="POST" onsubmit="if(!document.getElementById('input-data').value) { alert('⚠️ Por favor, clique em um dia no calendário antes de salvar!'); return false; }">
+                <h2 id="titulo-form-agenda">Agendar Novo</h2>
+                
+                <form id="form-agenda" action="/minha_agenda" method="POST" onsubmit="return validarFormAgenda()">
                     
-                    <!-- Select de Leads -->
-                    <div class="form-group">
+                    <div id="inputs-reagendamento"></div>
+                    
+                    <div class="form-group" id="group-lead">
                         <label>Selecionar Lead</label>
                         <select name="titulo_compromisso" id="select-lead" required onchange="verificarNovoLead(this)">
                             <option value="" disabled selected>Selecione um cliente da base...</option>
-                            
-                            <!-- Carrega os leads do banco de dados (enviados pelo app.py) -->
                             {% for lead in leads %}
                                 <option value="{{ lead.nome }} - {{ lead.empresa }}">{{ lead.nome }} ({{ lead.empresa }})</option>
                             {% endfor %}
-                            
-                            <!-- Opção para direcionar ao cadastro -->
                             <option value="NOVO_LEAD" style="color: #ff8c00; font-weight: bold;">+ Cadastrar Novo Lead</option>
                         </select>
                     </div>
                     
-                    <!-- Data -->
                     <div class="form-group">
                         <label>Data Escolhida</label>
                         <input type="text" id="data-visual" class="input-data-visual" value="Selecione um dia ao lado" readonly>
                         <input type="hidden" id="input-data" name="data_compromisso" required>
                     </div>
 
-                    <!-- Horário em Listbox -->
                     <div class="form-group">
                         <label>Horário</label>
                         <select name="hora_compromisso" required>
-                            <option value="08:00">08:00 - Manhã</option>
-                            <option value="09:00">09:00 - Manhã</option>
-                            <option value="10:00">10:00 - Manhã</option>
-                            <option value="11:00">11:00 - Manhã</option>
-                            <option value="12:00">12:00 - Almoço</option>
-                            <option value="13:00">13:00 - Tarde</option>
-                            <option value="14:00" selected>14:00 - Tarde</option>
-                            <option value="15:00">15:00 - Tarde</option>
-                            <option value="16:00">16:00 - Tarde</option>
-                            <option value="17:00">17:00 - Tarde</option>
+                            <option value="08:00">08:00 - Manhã</option><option value="09:00">09:00 - Manhã</option>
+                            <option value="10:00">10:00 - Manhã</option><option value="11:00">11:00 - Manhã</option>
+                            <option value="12:00">12:00 - Almoço</option><option value="13:00">13:00 - Tarde</option>
+                            <option value="14:00" selected>14:00 - Tarde</option><option value="15:00">15:00 - Tarde</option>
+                            <option value="16:00">16:00 - Tarde</option><option value="17:00">17:00 - Tarde</option>
                             <option value="18:00">18:00 - Fim de Dia</option>
                         </select>
                     </div>
 
-                    <div class="modal-actions"><button type="submit" class="btn-salvar">Salvar Agendamento</button></div>
+                    <div class="modal-actions"><button type="submit" id="btn-confirmar-agenda" class="btn-salvar">Salvar Agendamento</button></div>
                     <div class="modal-actions" style="margin-top: 5px;"><button type="button" class="btn-cancelar" onclick="fecharModais()">Voltar</button></div>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- MODAL 2: REGISTRAR ANDAMENTO (FEEDBACK) -->
     <div class="modal-overlay" id="modalFeedback">
         <div class="modal-content modal-feedback">
             <h2>Registrar Andamento</h2>
@@ -197,17 +166,16 @@
                 <input type="hidden" name="evento_id" id="input-evento-id">
                 
                 <div class="form-group">
-                    <label>Como foi? (Obrigatório para prosseguir)</label>
-                    <textarea name="observacoes" id="input-observacoes" placeholder="Ex: Cliente achou caro, pediu para retornar na sexta..." required></textarea>
+                    <label>Como foi? (Obrigatório)</label>
+                    <textarea name="observacoes" id="input-observacoes" placeholder="Ex: Cliente achou caro, pediu para retornar..." required></textarea>
                 </div>
                 
-                <!-- Nova estrutura de botões em coluna exigindo a nota -->
                 <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
-                    <button type="submit" name="acao" value="concluir" class="btn-salvar" style="background-color: #4CAF50; color: white;">✅ Concluir Compromisso</button>
+                    <button type="submit" name="acao" value="concluir" class="btn-salvar" style="background-color: #4CAF50; color: white;">Concluir Compromisso</button>
                     
-                    <button type="submit" name="acao" value="reagendar" class="btn-salvar" style="background-color: #2196F3; color: white;">🔄 Reagendar</button>
+                    <button type="button" class="btn-salvar" style="background-color: #2196F3; color: white;" onclick="iniciarReagendamento()">Reagendar</button>
                     
-                    <button type="submit" name="acao" value="excluir" class="btn-salvar" style="background-color: #f44336; color: white;">🗑️ Excluir</button>
+                    <button type="submit" name="acao" value="excluir" class="btn-salvar" style="background-color: #f44336; color: white;">Excluir</button>
                     
                     <button type="button" class="btn-cancelar" onclick="fecharModais()" style="margin-top: 5px;">Cancelar</button>
                 </div>
@@ -215,18 +183,14 @@
         </div>
     </div>
 
-    <!-- LÓGICA JAVASCRIPT -->
     <script>
-        // Truque para o VSCode não reclamar do JSON e ler a lista do Python perfeitamente
         const eventosBanco = JSON.parse('{{ eventos_json | safe if eventos_json else "[]" }}');
         
         let dataAtual = new Date();
         let mesAtual = dataAtual.getMonth();
         let anoAtual = dataAtual.getFullYear();
-
         const mesesNomes = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
-        // RENDERIZAÇÃO DO CALENDÁRIO
         function renderizarCalendario() {
             const grid = document.getElementById('dias-grid');
             grid.innerHTML = '';
@@ -235,30 +199,28 @@
             const primeiroDia = new Date(anoAtual, mesAtual, 1).getDay();
             const diasNoMes = new Date(anoAtual, mesAtual + 1, 0).getDate();
 
-            // Preenche espaços vazios antes do dia 1
+            // LÓGICA DE SUMIR: Pega apenas os compromissos que estão 'Pendentes'
+            let eventosPendentes = eventosBanco.filter(e => e.status === 'Pendente');
+
             for (let i = 0; i < primeiroDia; i++) {
                 let divVazia = document.createElement('div'); divVazia.className = 'dia-celula dia-vazio'; grid.appendChild(divVazia);
             }
 
-            // Preenche os dias reais do mês
             for (let dia = 1; dia <= diasNoMes; dia++) {
                 let divDia = document.createElement('div'); divDia.className = 'dia-celula'; divDia.innerText = dia;
                 let dataLoop = `${anoAtual}-${String(mesAtual + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
 
-                // Destaca dia atual
                 let hoje = new Date();
                 if (dia === hoje.getDate() && mesAtual === hoje.getMonth() && anoAtual === hoje.getFullYear()) divDia.classList.add('hoje');
 
-                // Destaca se tem evento
-                let eventosNesteDia = eventosBanco.filter(e => e.data === dataLoop);
+                // Verifica se há eventos pendentes neste dia para colocar o ponto laranja
+                let eventosNesteDia = eventosPendentes.filter(e => e.data === dataLoop);
                 if (eventosNesteDia.length > 0) divDia.classList.add('tem-evento');
 
-                // Ação de Clique no Dia
                 divDia.onclick = () => {
                     document.querySelectorAll('.dia-celula').forEach(el => el.classList.remove('selecionado'));
                     divDia.classList.add('selecionado');
                     
-                    // Alimenta o formulário de forma invisível para o BD e visível pro Usuário
                     document.getElementById('input-data').value = dataLoop; 
                     document.getElementById('data-visual').value = `${String(dia).padStart(2, '0')}/${String(mesAtual + 1).padStart(2, '0')}/${anoAtual}`;
                     
@@ -268,7 +230,6 @@
             }
         }
 
-        // MOSTRAR EVENTOS ABAIXO DO CALENDÁRIO COM NOVOS ÍCONES
         function mostrarEventosDoDia(eventos) {
             const painel = document.getElementById('lista-eventos-dia');
             if (eventos.length === 0) {
@@ -278,21 +239,10 @@
             
             let html = `<strong style="color: #fff; display: block; margin-bottom: 10px;">Clique em um evento para registrar andamento:</strong>`;
             eventos.forEach(ev => {
-                // Se não for 'Pendente', deixa a cor apagada indicando que já foi tratado
-                let classeExtra = ev.status !== 'Pendente' ? 'evento-concluido' : '';
-                
-                // Define o ícone com base no status do banco de dados
-                let icone = '⏳';
-                if (ev.status === 'Concluído') icone = '✅';
-                if (ev.status === 'Reagendado') icone = '🔄';
-                
-                // Limpa as aspas do banco para não quebrar o JS
                 let obsLimpa = ev.obs.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-                
                 html += `
-                    <div class="evento-item ${classeExtra}" onclick="abrirModalFeedback(${ev.id}, '${ev.titulo}', '${obsLimpa}')">
-                        ${icone} ${ev.hora} - ${ev.titulo}
-                        ${ev.obs ? `<small>Info: ${ev.obs}</small>` : ''}
+                    <div class="evento-item" onclick="abrirModalFeedback(${ev.id}, '${ev.titulo}', '${obsLimpa}')">
+                        ${ev.hora} - ${ev.titulo}
                     </div>`;
             });
             painel.innerHTML = html;
@@ -305,11 +255,51 @@
             renderizarCalendario();
         }
 
-        // CONTROLE DOS MODAIS
-        function abrirModalAgenda() { document.getElementById('modalAgenda').style.display = 'flex'; renderizarCalendario(); }
+        function abrirModalAgenda() { 
+            // Prepara o form para NOVO AGENDAMENTO
+            document.getElementById('form-agenda').action = '/minha_agenda';
+            document.getElementById('titulo-form-agenda').innerText = 'Agendar Novo';
+            document.getElementById('group-lead').style.display = 'flex';
+            document.getElementById('select-lead').setAttribute('required', 'true');
+            document.getElementById('inputs-reagendamento').innerHTML = '';
+            document.getElementById('btn-confirmar-agenda').innerText = 'Salvar Agendamento';
+            
+            document.getElementById('modalAgenda').style.display = 'flex'; 
+            renderizarCalendario(); 
+        }
+
+        function iniciarReagendamento() {
+            let obs = document.getElementById('input-observacoes').value;
+            if (!obs.trim()) {
+                alert('⚠️ Você precisa preencher a observação antes de reagendar!');
+                return;
+            }
+            
+            let evId = document.getElementById('input-evento-id').value;
+            fecharModais();
+            
+            // Prepara o form da agenda para REAGENDAR (aproveitando o calendário)
+            document.getElementById('form-agenda').action = '/salvar_feedback';
+            document.getElementById('titulo-form-agenda').innerText = 'Reagendar Compromisso';
+            
+            // Esconde a seleção de Lead, pois já está vinculado
+            document.getElementById('group-lead').style.display = 'none';
+            document.getElementById('select-lead').removeAttribute('required');
+            
+            // Injeta dados ocultos para o backend entender a ação
+            document.getElementById('inputs-reagendamento').innerHTML = `
+                <input type="hidden" name="acao" value="reagendar">
+                <input type="hidden" name="evento_id" value="${evId}">
+                <input type="hidden" name="observacoes" value="${obs}">
+            `;
+            
+            document.getElementById('btn-confirmar-agenda').innerText = 'Confirmar Reagendamento';
+            document.getElementById('modalAgenda').style.display = 'flex';
+            renderizarCalendario();
+        }
         
         function abrirModalFeedback(id, titulo, obs) {
-            document.getElementById('modalAgenda').style.display = 'none'; // Troca a tela
+            document.getElementById('modalAgenda').style.display = 'none'; 
             document.getElementById('modalFeedback').style.display = 'flex';
             
             document.getElementById('input-evento-id').value = id;
@@ -322,11 +312,16 @@
             document.getElementById('modalFeedback').style.display = 'none';
         }
 
-        // FORÇAR CRIAÇÃO DE LEAD PELA AGENDA
-        function verificarNovoLead(selectElement) {
-            if (selectElement.value === 'NOVO_LEAD') {
-                window.location.href = '/base_leads';
+        function validarFormAgenda() {
+            if(!document.getElementById('input-data').value) { 
+                alert('⚠️ Por favor, clique em um dia no calendário antes de salvar!'); 
+                return false; 
             }
+            return true;
+        }
+
+        function verificarNovoLead(selectElement) {
+            if (selectElement.value === 'NOVO_LEAD') { window.location.href = '/base_leads'; }
         }
     </script>
 </body>

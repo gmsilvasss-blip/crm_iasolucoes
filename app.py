@@ -190,23 +190,30 @@ def salvar_feedback():
     
     evento_id = request.form.get('evento_id')
     observacoes = request.form.get('observacoes')
-    acao = request.form.get('acao') # NOVO: Pega qual botão foi clicado
+    acao = request.form.get('acao') 
     
     try:
         conn = conectar_banco()
         cur = conn.cursor()
         
         if acao == 'excluir':
-            # Exclui o compromisso permanentemente
+            # Apaga do banco
             cur.execute("DELETE FROM agenda WHERE id = %s AND usuario_id = %s", (evento_id, session['usuario_id']))
+            
         elif acao == 'reagendar':
-            # Atualiza para Reagendado (sai da lista pendente, mas mantém o histórico)
+            # Pega as novas escolhas de data e hora
+            nova_data = request.form.get('data_compromisso')
+            nova_hora = request.form.get('hora_compromisso')
+            data_hora_completa = f"{nova_data} {nova_hora}:00"
+            
+            # Salva o andamento e volta o status para Pendente com a nova data
             cur.execute(
-                "UPDATE agenda SET observacoes = %s, status = 'Reagendado' WHERE id = %s AND usuario_id = %s",
-                (observacoes, evento_id, session['usuario_id'])
+                "UPDATE agenda SET observacoes = %s, status = 'Pendente', data_hora = %s WHERE id = %s AND usuario_id = %s",
+                (observacoes, data_hora_completa, evento_id, session['usuario_id'])
             )
+            
         else:
-            # Atualiza para Concluído (comportamento padrão)
+            # Concluir
             cur.execute(
                 "UPDATE agenda SET observacoes = %s, status = 'Concluído' WHERE id = %s AND usuario_id = %s",
                 (observacoes, evento_id, session['usuario_id'])
