@@ -175,6 +175,153 @@ def minha_agenda():
     # Redireciona de volta para a Home para ver o card atualizado
     return redirect(url_for('home'))
 
+# --- ROTA 7: TELA DA BASE DE LEADS ---
+@app.route('/base_leads')
+def base_leads():
+    if 'usuario_id' not in session:
+        return redirect(url_for('login'))
+    
+    leads_processados = []
+    
+    try:
+        conn = conectar_banco()
+        cur = conn.cursor()
+        
+        # Busca todos os leads do usuário logado
+        cur.execute("SELECT id, nome, empresa, interesse, contato FROM leads WHERE usuario_id = %s ORDER BY id DESC", (session['usuario_id'],))
+        leads_db = cur.fetchall()
+        
+        # Para cada lead, busca o histórico de notas
+        for l in leads_db:
+            lead_id = l[0]
+            cur.execute("SELECT nota, data_criacao FROM notas_leads WHERE lead_id = %s ORDER BY data_criacao DESC", (lead_id,))
+            notas_db = cur.fetchall()
+            
+            # Formata as notas para a tela
+            lista_notas = [{"texto": n[0], "data": n[1].strftime('%d/%m/%Y %H:%M')} for n in notas_db]
+            
+            leads_processados.append({
+                "id": lead_id,
+                "nome": l[1],
+                "empresa": l[2],
+                "interesse": l[3],
+                "contato": l[4],
+                "notas": lista_notas
+            })
+            
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print(f"Erro ao carregar leads: {e}")
+        
+    return render_template('base_leads.html', leads=leads_processados)
+
+
+# --- ROTA 8: CADASTRAR NOVO LEAD ---
+@app.route('/cadastrar_lead', methods=['POST'])
+def cadastrar_lead():
+    if 'usuario_id' not in session: return redirect(url_for('login'))
+    
+    nome = request.form.get('nome')
+    empresa = request.form.get('empresa')
+    interesse = request.form.get('interesse')
+    contato = request.form.get('contato')
+    nota_inicial = request.form.get('nota')
+    
+    try:
+        conn = conectar_banco()
+        cur = conn.cursor()
+        
+        # Insere o lead e retorna o ID gerado para podermos atrelar a nota inicial
+        cur.execute(
+            "INSERT INTO leads (usuario_id, nome, empresa, interesse, contato) VALUES (%s, %s, %s, %s, %s) RETURNING id",
+            (session['usuario_id'], nome, empresa, interesse, contato)
+        )
+        novo_lead_id = cur.fetchone()[0]
+        
+        # Se o usuário preencheu uma nota inicial, já salva no histórico
+        if nota_inicial:
+            cur.execute("INSERT INTO notas_leads (lead_id, nota) VALUES (%s, %s)", (novo_lead_id, nota_inicial[:300]))
+            
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print(f"Erro ao cadastrar lead: {e}")
+        
+    return redirect(url_for('base_leads'))
+
+
+# --- ROTA 9: EDITAR LEAD ---
+@app.route('/editar_lead', methods=['POST'])
+def editar_lead():
+    if 'usuario_id' not in session: return redirect(url_for('login'))
+    
+    lead_id = request.form.get('lead_id')
+    nome = request.form.get('nome')
+    empresa = request.form.get('empresa')
+    interesse = request.form.get('interesse')
+    contato = request.form.get('contato')
+    
+    try:
+        conn = conectar_banco()
+        cur = conn.cursor()
+        # Garante que só edita se o lead for do usuário logado
+        cur.execute(
+            "UPDATE leads SET nome=%s, empresa=%s, interesse=%s, contato=%s WHERE id=%s AND usuario_id=%s",
+            (nome, empresa, interesse, contato, lead_id, session['usuario_id'])
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print(f"Erro ao editar lead: {e}")
+        
+    return redirect(url_for('base_leads'))
+
+
+# --- ROTA 10: DELETAR LEAD ---
+@app.route('/deletar_lead', methods=['POST'])
+def deletar_lead():
+    if 'usuario_id' not in session: return redirect(url_for('login'))
+    
+    lead_id = request.form.get('lead_id')
+    
+    try:
+        conn = conectar_banco()
+        cur = conn.cursor()
+        # O "ON DELETE CASCADE" no banco fará com que as notas sejam apagadas automaticamente
+        cur.execute("DELETE FROM leads WHERE id=%s AND usuario_id=%s", (lead_id, session['usuario_id']))
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print(f"Erro ao deletar lead: {e}")
+        
+    return redirect(url_for('base_leads'))
+
+
+# --- ROTA 11: ADICIONAR NOTA CONTÍNUA ---
+@app.route('/adicionar_nota', methods=['POST'])
+def adicionar_nota():
+    if 'usuario_id' not in session: return redirect(url_for('login'))
+    
+    lead_id = request.form.get('lead_id')
+    nova_nota = request.form.get('nova_nota')
+    
+    if nova_nota:
+        try:
+            conn = conectar_banco()
+            cur = conn.cursor()
+            # Limita a nota a 300 caracteres no Python por segurança
+            cur.execute("INSERT INTO notas_leads (lead_id, nota) VALUES (%s, %s)", (lead_id, nova_nota[:300]))
+            conn.commit()
+            cur.close()
+            conn.close()
+        except Exception as e:
+            print(f"Erro ao adicionar nota: {e}")
+            
+    return redirect(url_for('base_leads'))
 
 if __name__ == '__main__':
     app.run(debug=True)
