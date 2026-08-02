@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - CRM IA Soluções</title>
+    <style>
+        /* Base e Container */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #000000;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+        }
+        .app-container {
+            width: 100%;
+            max-width: 480px;
+            background-color: #121212;
+            min-height: 100vh;
+            position: relative;
+            padding-bottom: 80px;
+            box-sizing: border-box;
+        }
+
+        /* Cabeçalho */
+        header {
+            padding: 25px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #222;
+        }
+        .header-info h1 {
+            color: #ff8c00;
+            font-size: 1.1em;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .header-info p {
+            margin: 5px 0 0 0;
+            color: #e0e0e0;
+            font-size: 1.4em;
+            font-weight: bold;
+        }
+        .logout-btn {
+            color: #666;
+            text-decoration: none;
+            font-size: 1.2em;
+        }
+
+        /* Cards */
+        .content { padding: 20px; }
+        .card {
+            background-color: #1e1e1e;
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: all 0.2s ease;
+            display: block;
+            color: inherit;
+            text-decoration: none;
+        }
+        .card:hover { border-left-color: #ff8c00; background-color: #252525; }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .card-title {
+            font-weight: bold;
+            font-size: 1em;
+            color: #ffffff;
+            text-transform: uppercase;
+        }
+        .card-desc {
+            color: #888;
+            font-size: 0.9em;
+            margin: 0;
+        }
+        .destaque-laranja { color: #ff8c00; font-weight: bold; }
+
+        /* Barra Inferior */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            max-width: 480px;
+            background-color: #0a0a0a;
+            display: flex;
+            justify-content: space-around;
+            padding: 15px 0;
+            border-top: 1px solid #222;
+        }
+        .nav-item {
+            color: #666;
+            text-decoration: none;
+            font-size: 0.75em;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+        .nav-item.active { color: #ff8c00; }
+
+        /* MODAL DE AGENDAMENTO (Oculto por padrão) */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #1e1e1e;
+            width: 90%;
+            max-width: 400px;
+            padding: 25px;
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+        .modal-content h2 {
+            color: #ff8c00;
+            margin-top: 0;
+            font-size: 1.2em;
+            text-transform: uppercase;
+        }
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+        .form-group label {
+            color: #aaa;
+            font-size: 0.85em;
+            margin-bottom: 5px;
+        }
+        .form-group input {
+            background-color: #121212;
+            border: 1px solid #333;
+            color: #fff;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 1em;
+            color-scheme: dark; /* Força o calendário nativo a ficar escuro */
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #ff8c00;
+        }
+        .modal-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .btn-cancelar {
+            background: transparent;
+            color: #aaa;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        .btn-salvar {
+            background-color: #ff8c00;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1em;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="header-info">
+                <h1>CRM IA Soluções</h1>
+                <p>Pipeline</p>
+            </div>
+            <a href="/logout" class="logout-btn" title="Sair">🚪</a>
+        </header>
+        
+        <div class="content">
+            <!-- Card 1: Agenda (Clica e abre o modal) -->
+            <div class="card" onclick="abrirModal()">
+                <div class="card-header">
+                    <span class="card-title">Minha Agenda</span>
+                    <span class="card-icon">📅</span>
+                </div>
+                <p class="card-desc">
+                    <!-- O Jinja2 lê o Python aqui: se tiver compromisso, mostra. Senão, mostra vazio. -->
+                    {% if compromisso %}
+                        <span class="destaque-laranja">Próximo:</span> {{ compromisso }}
+                    {% else %}
+                        Nenhum contato agendado para hoje.
+                    {% endif %}
+                </p>
+            </div>
+            
+            <!-- Outros Cards -->
+            <a href="#" class="card">
+                <div class="card-header">
+                    <span class="card-title">Base de Leads</span>
+                    <span class="card-icon">📊</span>
+                </div>
+                <p class="card-desc">Gerencie suas oportunidades.</p>
+            </a>
+        </div>
+
+        <div class="bottom-nav">
+            <a href="/home" class="nav-item active">Hoje</a>
+            <a href="#" class="nav-item">Funil</a>
+            <a href="#" class="nav-item">Captura</a>
+        </div>
+    </div>
+
+    <!-- ESTRUTURA DO MODAL (Escondida) -->
+    <div class="modal-overlay" id="modalAgenda">
+        <div class="modal-content">
+            <h2>Novo Compromisso</h2>
+            <form action="/minha_agenda" method="POST">
+                <div class="form-group">
+                    <label>Título / Lead</label>
+                    <input type="text" name="titulo_compromisso" placeholder="Ex: Reunião com João" required>
+                </div>
+                <div class="form-group">
+                    <label>Data e Hora</label>
+                    <!-- Type datetime-local abre o calendário e relógio no celular -->
+                    <input type="datetime-local" name="data_hora" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancelar" onclick="fecharModal()">Cancelar</button>
+                    <button type="submit" class="btn-salvar">Salvar Agenda</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- SCRIPT SIMPLES PARA ABRIR/FECHAR O MODAL -->
+    <script>
+        function abrirModal() {
+            document.getElementById('modalAgenda').style.display = 'flex';
+        }
+        function fecharModal() {
+            document.getElementById('modalAgenda').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

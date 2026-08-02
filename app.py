@@ -1,21 +1,27 @@
 import os
+from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, session
 from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
 
 app = Flask(__name__)
 
-# Chave de segurança para os cookies de sessão (obrigatório para manter o usuário logado)
+# Configurações de Segurança e Banco de Dados
 app.secret_key = os.getenv("SECRET_KEY", "chave_secreta_desenvolvimento")
-
-# URL do banco de dados puxada das variáveis de ambiente do Render
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+# --- FUNÇÃO AUXILIAR: CONEXÃO COM O BANCO ---
+def conectar_banco():
+    """Cria e retorna uma conexão com o banco de dados PostgreSQL."""
+    return psycopg2.connect(DATABASE_URL)
 
-# --- ROTA 1: TELA INICIAL ---
+
+# --- ROTA 1: TELA INICIAL PÚBLICA ---
 @app.route('/')
 def inicio():
-    # Esta tela será o ponto de partida e também o destino após um login de sucesso
+    # Se o usuário já estiver logado e tentar acessar a raiz, joga direto pro Dashboard
+    if 'usuario_id' in session:
+        return redirect(url_for('home'))
     return render_template('inicio.html')
 
 
@@ -23,37 +29,26 @@ def inicio():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        # Captura os dados do formulário HTML
         email = request.form.get('email')
         senha = request.form.get('senha')
 
         try:
-            # Conecta ao banco de dados
-            conn = psycopg2.connect(DATABASE_URL)
+            conn = conectar_banco()
             cur = conn.cursor()
-            
-            # Busca o id e o hash da senha do usuário correspondente ao email
             cur.execute("SELECT id, senha_hash FROM usuarios WHERE email = %s", (email,))
             usuario = cur.fetchone()
-            
             cur.close()
             conn.close()
 
-            # Validação: Se o usuário existir e a senha inserida bater com o hash salvo
             if usuario and check_password_hash(usuario[1], senha):
-                # Salva o ID do usuário na sessão ativa
                 session['usuario_id'] = usuario[0]
-                
-                # Encaminha para a tela inicial (rota '/')
-                return redirect(url_for('inicio'))
+                return redirect(url_for('home'))
             else:
-                # Alerta de erro de usuário (credenciais inválidas)
                 return "<h1>Erro: E-mail ou senha incorretos.</h1><br><a href='/login'>Tentar novamente</a>", 401
 
         except Exception as e:
             return f"<h1>Falha na conexão com o banco de dados.</h1><p>Erro: {e}</p>", 500
 
-    # Se a requisição for GET (o usuário apenas clicou no link), exibe o formulário
     return render_template('login.html')
 
 
@@ -61,40 +56,110 @@ def login():
 @app.route('/registro', methods=['GET', 'POST'])
 def registro():
     if request.method == 'POST':
-        # Captura os dados preenchidos no formulário
         email = request.form.get('email')
         telefone = request.form.get('telefone')
         senha = request.form.get('senha')
         
-        # Criptografa a senha para segurança (nunca salvar em texto puro)
         senha_criptografada = generate_password_hash(senha)
         
         try:
-            # Conecta ao banco
-            conn = psycopg2.connect(DATABASE_URL)
+            conn = conectar_banco()
             cur = conn.cursor()
-            
-            # Insere o novo usuário na tabela
             cur.execute(
                 "INSERT INTO usuarios (email, telefone, senha_hash) VALUES (%s, %s, %s)",
                 (email, telefone, senha_criptografada)
             )
-            
             conn.commit()
             cur.close()
             conn.close()
             
-            # Após o cadastro com sucesso, redireciona diretamente para a tela de login
             return redirect(url_for('login'))
             
         except psycopg2.IntegrityError:
-            # Captura o erro caso o e-mail já exista no banco (devido à restrição UNIQUE)
-            return "<h1>Erro: Este e-mail já está cadastrado no sistema.</h1><br><a href='/registro'>Tentar novamente</a>", 400
+            return "<h1>Erro: Este e-mail já está cadastrado.</h1><br><a href='/registro'>Tentar novamente</a>", 400
         except Exception as e:
-            return f"<h1>Erro interno ao tentar cadastrar o usuário.</h1><p>Erro: {e}</p>", 500
+            return f"<h1>Erro interno ao tentar cadastrar.</h1><p>Erro: {e}</p>", 500
 
-    # Se for GET, mostra o formulário de cadastro
     return render_template('registro.html')
+
+
+# --- ROTA 4: LOGOUT (SAIR DO SISTEMA) ---
+@app.route('/logout')
+def logout():
+    # Remove o ID do usuário da sessão atual e joga pra tela inicial
+    session.pop('usuario_id', None)
+    return redirect(url_for('inicio'))
+
+
+# --- ROTA 5: DASHBOARD (HOME) ---
+@app.route('/home')
+def home():
+    # Proteção da Rota: Se não tiver sessão ativa, expulsa pro login
+    if 'usuario_id' not in session:
+        return redirect(url_for('login'))
+    
+    proximo_compromisso = None
+    
+    try:
+        conn = conectar_banco()
+        cur = conn.cursor()
+        
+        # Lógica: Busca o próximo compromisso a partir do momento atual (CURRENT_TIMESTAMP)
+        # Limitado a 1 resultado, ordenado do mais próximo para o mais distante.
+        query = """
+            SELECT titulo_compromisso, data_hora 
+            FROM agenda 
+            WHERE usuario_id = %s AND data_hora >= CURRENT_TIMESTAMP 
+            ORDER BY data_hora ASC 
+            LIMIT 1
+        """
+        cur.execute(query, (session['usuario_id'],))
+        resultado = cur.fetchone()
+        
+        if resultado:
+            # Formata a data e hora para mandar bonito pro HTML (ex: "14:30 - Reunião")
+            titulo = resultado[0]
+            hora_formatada = resultado[1].strftime('%H:%M')
+            proximo_compromisso = f"{hora_formatada} - {titulo}"
+            
+        cur.close()
+        conn.close()
+    except Exception as e:
+        # Se a tabela 'agenda' ainda não existir, o script passa direto sem quebrar o app
+        print(f"Aviso - Tabela de agenda não encontrada ou erro: {e}")
+        pass
+    
+    # Envia a variável proximo_compromisso para o template
+    return render_template('home.html', compromisso=proximo_compromisso)
+
+
+# --- ROTA 6: SALVAR NA AGENDA ---
+@app.route('/minha_agenda', methods=['POST'])
+def minha_agenda():
+    if 'usuario_id' not in session:
+        return redirect(url_for('login'))
+        
+    titulo = request.form.get('titulo_compromisso')
+    data_hora = request.form.get('data_hora') # Espera o formato YYYY-MM-DD HH:MM
+    
+    try:
+        conn = conectar_banco()
+        cur = conn.cursor()
+        
+        # Insere o compromisso atrelado ao ID do usuário logado
+        cur.execute(
+            "INSERT INTO agenda (usuario_id, titulo_compromisso, data_hora, status) VALUES (%s, %s, %s, 'Pendente')",
+            (session['usuario_id'], titulo, data_hora)
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+    except Exception as e:
+        print(f"Erro ao salvar na agenda: {e}")
+        
+    # Redireciona de volta para a Home para ver o card atualizado
+    return redirect(url_for('home'))
 
 
 if __name__ == '__main__':
