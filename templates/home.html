@@ -14,12 +14,10 @@
         
         .content { padding: 20px; }
         
-        /* NOVO: ESTILOS DO PIPELINE (CAIXAS D'ÁGUA) */
         .pipeline-dashboard { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; }
         .pipe-card { flex: 1; min-width: 80px; background-color: #1e1e1e; border-radius: 6px; padding: 15px 10px; text-align: center; border-top: 3px solid #ff8c00; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
         .pipe-card span { display: block; font-size: 0.70em; color: #aaa; text-transform: uppercase; margin-bottom: 5px; font-weight: bold;}
         .pipe-card strong { font-size: 1.5em; color: #fff; }
-        /* ----------------------------------------- */
 
         .card { background-color: #1e1e1e; border-radius: 6px; padding: 20px; margin-bottom: 15px; cursor: pointer; border-left: 3px solid transparent; transition: all 0.2s ease; display: block; color: inherit; text-decoration: none; }
         .card:hover { border-left-color: #ff8c00; background-color: #252525; }
@@ -75,8 +73,6 @@
         </header>
         
         <div class="content">
-            
-            <!-- NOVO: DASHBOARD PIPELINE (CAIXAS D'ÁGUA) -->
             <div class="pipeline-dashboard">
                 <div class="pipe-card"><span>Qualificação</span><strong>{{ pipeline.get('Qualificação', 0) }}</strong></div>
                 <div class="pipe-card"><span>Negociação</span><strong>{{ pipeline.get('Negociação', 0) }}</strong></div>
@@ -100,7 +96,7 @@
         <div class="bottom-nav">
             <a href="/home" class="nav-item active">Hoje</a>
             <a href="/base_leads" class="nav-item">Leads</a>
-            <a href="#" class="nav-item">Captura</a>
+            <a href="/captura" class="nav-item">Captura</a>
         </div>
     </div>
 
@@ -123,7 +119,9 @@
                     
                     <div class="form-group" id="group-lead">
                         <label>Selecionar Lead</label>
-                        <!-- O Select envia o ID e o Título juntos -->
+                        <!-- NOVO: Campo de busca para filtrar a base de leads cheia -->
+                        <input type="text" id="busca-lead" placeholder="🔍 Buscar por nome ou empresa..." onkeyup="filtrarLeads()" style="margin-bottom: 8px;">
+                        
                         <select name="titulo_compromisso" id="select-lead" required onchange="verificarNovoLead(this)">
                             <option value="" disabled selected>Selecione um cliente da base...</option>
                             {% for lead in leads %}
@@ -173,8 +171,21 @@
                 <input type="hidden" name="evento_id" id="input-evento-id">
                 <input type="hidden" name="lead_id" id="input-lead-id">
                 
+                <!-- NOVO: Status Obrigatório -->
+                <div class="form-group">
+                    <label>Status do Lead (Obrigatório)</label>
+                    <select name="novo_status_lead" id="input-status-lead" required>
+                        <option value="" disabled selected>Selecione o estágio atual...</option>
+                        <option value="Qualificação">Qualificação</option>
+                        <option value="Negociação">Negociação</option>
+                        <option value="Fechado">Fechado</option>
+                        <option value="Perdido">Perdido</option>
+                    </select>
+                </div>
+
                 <div class="form-group">
                     <label>Como foi? (Obrigatório)</label>
+                    <!-- A caixa agora vem sempre vazia, sem carregar a obs antiga -->
                     <textarea name="observacoes" id="input-observacoes" placeholder="Ex: Cliente achou caro, pediu para retornar..." required></textarea>
                 </div>
                 
@@ -251,12 +262,17 @@
             document.getElementById('select-lead').setAttribute('required', 'true');
             document.getElementById('inputs-reagendamento').innerHTML = '';
             document.getElementById('btn-confirmar-agenda').innerText = 'Salvar Agendamento';
+            document.getElementById('busca-lead').value = ''; // Limpa a busca ao abrir
+            filtrarLeads(); // Reseta o filtro
             document.getElementById('modalAgenda').style.display = 'flex'; 
             renderizarCalendario(); 
         }
 
         function iniciarReagendamento() {
             let obs = document.getElementById('input-observacoes').value;
+            let statusLead = document.getElementById('input-status-lead').value;
+            
+            if (!statusLead) { alert('⚠️ Selecione o status atual do lead!'); return; }
             if (!obs.trim()) { alert('⚠️ Preencha a observação antes de reagendar!'); return; }
             
             let evId = document.getElementById('input-evento-id').value;
@@ -275,6 +291,7 @@
                 <input type="hidden" name="evento_id" value="${evId}">
                 <input type="hidden" name="lead_id" value="${leadId}">
                 <input type="hidden" name="observacoes" value="${obs}">
+                <input type="hidden" name="novo_status_lead" value="${statusLead}">
             `;
             
             document.getElementById('btn-confirmar-agenda').innerText = 'Confirmar Reagendamento';
@@ -282,15 +299,39 @@
             renderizarCalendario();
         }
         
-        function abrirModalFeedback(id, titulo, obs, lead_id) {
+        function abrirModalFeedback(id, titulo, obs_antiga, lead_id) {
             document.getElementById('modalAgenda').style.display = 'none'; 
             document.getElementById('modalFeedback').style.display = 'flex';
             document.getElementById('input-evento-id').value = id;
             document.getElementById('input-lead-id').value = lead_id; 
             document.getElementById('feedback-titulo').innerText = titulo;
-            document.getElementById('input-observacoes').value = obs; 
+            
+            // Alterado para sempre abrir com a caixa de texto vazia
+            document.getElementById('input-observacoes').value = ''; 
+            document.getElementById('input-status-lead').value = ''; // Zera a seleção do status
         }
         
+        // NOVO: Função para filtrar os leads na hora do agendamento
+        function filtrarLeads() {
+            let input = document.getElementById('busca-lead').value.toLowerCase();
+            let select = document.getElementById('select-lead');
+            let options = select.getElementsByTagName('option');
+            
+            for (let i = 0; i < options.length; i++) {
+                // Deixa o placeholder e a opção de Novo Lead sempre visíveis
+                if (options[i].disabled || options[i].value === 'NOVO_LEAD') {
+                    continue;
+                }
+                
+                let textoOption = options[i].text.toLowerCase();
+                if (textoOption.includes(input)) {
+                    options[i].style.display = "";
+                } else {
+                    options[i].style.display = "none";
+                }
+            }
+        }
+
         function fecharModais() { document.getElementById('modalAgenda').style.display = 'none'; document.getElementById('modalFeedback').style.display = 'none'; }
         function validarFormAgenda() { if(!document.getElementById('input-data').value) { alert('⚠️ Clique em um dia no calendário!'); return false; } return true; }
         function verificarNovoLead(selectElement) { if (selectElement.value === 'NOVO_LEAD') { window.location.href = '/base_leads'; } }
