@@ -6,191 +6,180 @@
     <title>Base de Leads - CRM IA Soluções</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #000000; color: #e0e0e0; margin: 0; padding: 0; display: flex; justify-content: center; }
-        .app-container { width: 100%; max-width: 480px; background-color: #121212; min-height: 100vh; position: relative; padding-bottom: 80px; box-sizing: border-box; }
+        .app-container { width: 100%; max-width: 480px; background-color: #121212; min-height: 100vh; padding-bottom: 80px; box-sizing: border-box; }
+        header { padding: 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; }
+        h1 { color: #ff8c00; font-size: 1.2em; margin: 0; text-transform: uppercase; }
+        .btn-acao { background-color: #ff8c00; color: #000; border: none; padding: 8px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 0.8em; margin-bottom: 10px; width: 100%; display: block; text-align: center;}
+        .btn-link { background-color: #1e1e1e; border: 1px solid #ff8c00; color: #ff8c00; }
+        .content { padding: 15px; }
         
-        header { padding: 25px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; }
-        .header-info h1 { color: #ff8c00; font-size: 1.1em; margin: 0; text-transform: uppercase; letter-spacing: 2px; }
+        .lead-card { background-color: #1e1e1e; border-radius: 6px; padding: 15px; margin-bottom: 15px; border-left: 3px solid #ff8c00; }
+        .lead-header { display: flex; justify-content: space-between; margin-bottom: 10px; }
+        .lead-nome { font-weight: bold; color: #fff; font-size: 1.1em; }
+        .badge-status { font-size: 0.7em; padding: 3px 6px; border-radius: 3px; background: #333; color: #fff; text-transform: uppercase; }
         
-        .content { padding: 20px; }
+        .lead-detalhes p { margin: 4px 0; font-size: 0.85em; color: #aaa; }
+        .lead-detalhes strong { color: #ccc; }
+        .acoes-lead { margin-top: 15px; display: flex; gap: 10px; }
+        .acoes-lead button { flex: 1; padding: 8px; font-size: 0.8em; background: #333; color: #fff; border: none; border-radius: 3px; cursor: pointer; }
         
-        .btn-principal { background-color: #ff8c00; color: #000; border: none; padding: 15px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 1em; width: 100%; text-transform: uppercase; margin-bottom: 20px; }
-        
-        /* Estilos do Card de Lead */
-        .lead-card { background-color: #1e1e1e; border-radius: 6px; padding: 20px; margin-bottom: 20px; border-left: 3px solid #ff8c00; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-        .lead-header { border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px; }
-        .lead-nome { font-weight: bold; font-size: 1.2em; color: #ffffff; margin: 0 0 5px 0; }
-        .lead-info { color: #aaa; font-size: 0.9em; margin: 3px 0; }
-        .lead-info strong { color: #ccc; }
-        
-        /* Ações do Card */
-        .lead-actions { display: flex; gap: 10px; margin-top: 15px; }
-        .btn-acao { flex: 1; padding: 8px; border: none; border-radius: 4px; font-size: 0.85em; font-weight: bold; cursor: pointer; color: #fff; text-align: center; }
-        .btn-editar { background-color: #4CAF50; }
-        .btn-excluir { background-color: #f44336; }
-        .btn-nota { background-color: #2196F3; }
-        
-        /* Histórico de Notas */
-        .historico-notas { margin-top: 15px; background-color: #121212; padding: 10px; border-radius: 4px; max-height: 150px; overflow-y: auto; }
-        .nota-item { border-left: 2px solid #555; padding-left: 10px; margin-bottom: 10px; }
-        .nota-data { font-size: 0.75em; color: #ff8c00; display: block; margin-bottom: 2px; }
-        .nota-texto { font-size: 0.85em; color: #ccc; margin: 0; line-height: 1.4; }
-
-        /* Barra Inferior */
         .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 480px; background-color: #0a0a0a; display: flex; justify-content: space-around; padding: 15px 0; border-top: 1px solid #222; }
-        .nav-item { color: #666; text-decoration: none; font-size: 0.75em; display: flex; flex-direction: column; align-items: center; gap: 5px; text-transform: uppercase; font-weight: bold; }
+        .nav-item { color: #666; text-decoration: none; font-size: 0.75em; text-transform: uppercase; font-weight: bold; }
         .nav-item.active { color: #ff8c00; }
 
-        /* Modais */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center; }
-        .modal-content { background-color: #1e1e1e; width: 90%; max-width: 400px; padding: 25px; border-radius: 8px; border: 1px solid #333; }
-        .modal-content h2 { color: #ff8c00; margin-top: 0; text-transform: uppercase; font-size: 1.2em; border-bottom: 1px solid #333; padding-bottom: 10px; }
-        .form-group { margin-bottom: 15px; display: flex; flex-direction: column; }
-        .form-group label { color: #aaa; font-size: 0.85em; margin-bottom: 5px; }
-        .form-group input, .form-group textarea { background-color: #121212; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 4px; font-size: 1em; font-family: inherit;}
-        .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #ff8c00; }
-        .btn-salvar { background-color: #ff8c00; color: #000; border: none; padding: 12px; border-radius: 4px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
-        .btn-cancelar { background: transparent; color: #aaa; border: none; padding: 12px; cursor: pointer; width: 100%; margin-top: 5px; }
+        .modal-content { background-color: #1e1e1e; width: 90%; max-width: 400px; padding: 20px; border-radius: 8px; border: 1px solid #333; max-height: 85vh; overflow-y: auto; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { color: #aaa; font-size: 0.85em; display: block; margin-bottom: 5px; }
+        .form-group input, .form-group select { width: 100%; background-color: #121212; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 4px; box-sizing: border-box; }
+        .btn-cancelar { background: transparent; color: #aaa; border: none; padding: 10px; width: 100%; margin-top: 10px; cursor: pointer; }
+        
+        .produto-item { display: flex; justify-content: space-between; background: #121212; padding: 10px; margin-bottom: 5px; border-radius: 4px; font-size: 0.85em; }
+        .btn-del { color: #e74c3c; background: none; border: none; cursor: pointer; }
     </style>
 </head>
 <body>
     <div class="app-container">
         <header>
-            <div class="header-info">
-                <h1>CRM IA Soluções</h1>
-                <p>Base de Leads</p>
-            </div>
-            <a href="/home" style="color:#ff8c00; text-decoration:none;">⬅ Voltar</a>
+            <h1>Base de Leads</h1>
         </header>
         
         <div class="content">
-            <button class="btn-principal" onclick="abrirModal('modalCadastrar')">+ Novo Lead</button>
+            <button class="btn-acao" onclick="abrirModal('modalLead')">+ Novo Lead</button>
+            <button class="btn-acao btn-link" onclick="copiarLinkCaptura('{{ token }}')">🔗 Copiar Link de Captura</button>
+            <button class="btn-acao" style="background-color: #333; color: #fff;" onclick="abrirModal('modalProdutos')">📦 Gerenciar Produtos</button>
 
-            <!-- Loop do Jinja para exibir os Leads -->
             {% for lead in leads %}
             <div class="lead-card">
                 <div class="lead-header">
-                    <h3 class="lead-nome">{{ lead.nome }}</h3>
-                    <p class="lead-info"><strong>Empresa:</strong> {{ lead.empresa }}</p>
-                    <p class="lead-info"><strong>Interesse:</strong> {{ lead.interesse }}</p>
-                    <p class="lead-info"><strong>Contato:</strong> {{ lead.contato }}</p>
+                    <span class="lead-nome">{{ lead.nome }}</span>
+                    <span class="badge-status">{{ lead.status }}</span>
                 </div>
-                
-                <div class="lead-actions">
-                    <button class="btn-acao btn-editar" onclick="abrirModalEditar('{{ lead.id }}', '{{ lead.nome }}', '{{ lead.empresa }}', '{{ lead.interesse }}', '{{ lead.contato }}')">Editar</button>
-                    <button class="btn-acao btn-nota" onclick="abrirModalNota('{{ lead.id }}')">+ Nota</button>
-                    <button class="btn-acao btn-excluir" onclick="abrirModalExcluir('{{ lead.id }}')">Excluir</button>
+                <div class="lead-detalhes">
+                    <p><strong>Empresa:</strong> {{ lead.empresa }}</p>
+                    <p><strong>Interesse:</strong> {{ lead.interesse }}</p>
+                    <p><strong>WhatsApp:</strong> {{ lead.telefone }}</p>
+                    <p><strong>E-mail:</strong> {{ lead.email }}</p>
                 </div>
-
-                <!-- Histórico Contínuo de Notas -->
-                {% if lead.notas %}
-                <div class="historico-notas">
-                    {% for nota in lead.notas %}
-                    <div class="nota-item">
-                        <span class="nota-data">{{ nota.data }}</span>
-                        <p class="nota-texto">{{ nota.texto }}</p>
-                    </div>
-                    {% endfor %}
+                <div class="acoes-lead">
+                    <!-- A edição abrirá um modal pré-preenchido via JavaScript -->
+                    <button onclick="prepararEdicao({{ lead.id }}, '{{ lead.nome }}', '{{ lead.empresa }}', '{{ lead.interesse }}', '{{ lead.telefone }}', '{{ lead.email }}', '{{ lead.endereco }}', '{{ lead.status }}')">Editar</button>
+                    <button onclick="abrirModal('modalNotas{{ lead.id }}')">Histórico</button>
                 </div>
-                {% endif %}
             </div>
-            {% else %}
-                <p style="text-align: center; color: #666; margin-top: 40px;">Nenhum lead cadastrado ainda.</p>
+            
+            <!-- Modal de Histórico Específico -->
+            <div class="modal-overlay" id="modalNotas{{ lead.id }}">
+                <div class="modal-content">
+                    <h2 style="color: #ff8c00; font-size: 1.1em;">Histórico: {{ lead.nome }}</h2>
+                    <div style="background: #121212; padding: 10px; max-height: 200px; overflow-y: auto; margin-bottom: 15px; border: 1px solid #333;">
+                        {% for nota in lead.notas %}
+                            <p style="font-size: 0.8em; margin: 0 0 10px 0; color: #ccc;"><span style="color: #ff8c00;">[{{ nota.data }}]</span> {{ nota.texto }}</p>
+                        {% endfor %}
+                    </div>
+                    <button class="btn-cancelar" onclick="fecharModais()">Fechar</button>
+                </div>
+            </div>
             {% endfor %}
         </div>
 
         <div class="bottom-nav">
             <a href="/home" class="nav-item">Hoje</a>
             <a href="/base_leads" class="nav-item active">Leads</a>
+            <a href="#" class="nav-item">Captura</a>
         </div>
     </div>
 
-    <!-- MODAL 1: CADASTRAR -->
-    <div class="modal-overlay" id="modalCadastrar">
+    <!-- MODAL: CADASTRAR/EDITAR LEAD -->
+    <div class="modal-overlay" id="modalLead">
         <div class="modal-content">
-            <h2>Cadastrar Cliente</h2>
-            <form action="/cadastrar_lead" method="POST">
-                <div class="form-group"><label>Nome</label><input type="text" name="nome" required></div>
-                <div class="form-group"><label>Empresa</label><input type="text" name="empresa"></div>
-                <div class="form-group"><label>Interesse</label><input type="text" name="interesse"></div>
-                <div class="form-group"><label>Contato</label><input type="text" name="contato"></div>
+            <h2 id="tituloModalLead" style="color:#ff8c00; font-size: 1.2em; margin-top:0;">Novo Lead</h2>
+            <form id="formLead" action="/cadastrar_lead" method="POST">
+                <input type="hidden" id="lead_id" name="lead_id">
+                
+                <div class="form-group"><label>Nome</label><input type="text" name="nome" id="lead_nome" required></div>
+                <div class="form-group"><label>Empresa</label><input type="text" name="empresa" id="lead_empresa"></div>
+                
                 <div class="form-group">
-                    <label>Nota Inicial (Max 300 carac.)</label>
-                    <textarea name="nota" maxlength="300" style="height: 60px; resize: none;"></textarea>
+                    <label>Telefone (WhatsApp)</label>
+                    <input type="text" name="telefone" id="lead_telefone" placeholder="(11) 99999-9999">
                 </div>
-                <button type="submit" class="btn-salvar">Salvar Lead</button>
-                <button type="button" class="btn-cancelar" onclick="fecharModais()">Cancelar</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- MODAL 2: EDITAR -->
-    <div class="modal-overlay" id="modalEditar">
-        <div class="modal-content">
-            <h2>Editar Cliente</h2>
-            <form action="/editar_lead" method="POST">
-                <input type="hidden" name="lead_id" id="edit_id">
-                <div class="form-group"><label>Nome</label><input type="text" name="nome" id="edit_nome" required></div>
-                <div class="form-group"><label>Empresa</label><input type="text" name="empresa" id="edit_empresa"></div>
-                <div class="form-group"><label>Interesse</label><input type="text" name="interesse" id="edit_interesse"></div>
-                <div class="form-group"><label>Contato</label><input type="text" name="contato" id="edit_contato"></div>
-                <button type="submit" class="btn-salvar" style="background-color: #4CAF50;">Atualizar Dados</button>
-                <button type="button" class="btn-cancelar" onclick="fecharModais()">Cancelar</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- MODAL 3: NOVA NOTA -->
-    <div class="modal-overlay" id="modalNota">
-        <div class="modal-content">
-            <h2>Inserir Nova Nota</h2>
-            <form action="/adicionar_nota" method="POST">
-                <input type="hidden" name="lead_id" id="nota_lead_id">
+                
+                <div class="form-group"><label>E-mail</label><input type="email" name="email" id="lead_email"></div>
+                <div class="form-group"><label>Endereço Completo</label><input type="text" name="endereco" id="lead_endereco"></div>
+                
                 <div class="form-group">
-                    <label>Relatório do contato (Max 300 carac.)</label>
-                    <textarea name="nova_nota" maxlength="300" style="height: 100px; resize: none;" required></textarea>
+                    <label>Produto de Interesse</label>
+                    <select name="interesse" id="lead_interesse">
+                        <option value="Geral">Interesse Geral</option>
+                        {% for p in produtos %}<option value="{{ p.nome }}">{{ p.nome }}</option>{% endfor %}
+                    </select>
                 </div>
-                <button type="submit" class="btn-salvar" style="background-color: #2196F3;">Registrar Histórico</button>
+
+                <div class="form-group">
+                    <label>Etapa de Venda (Status)</label>
+                    <select name="status" id="lead_status">
+                        <option value="Qualificação">Qualificação</option>
+                        <option value="Negociação">Negociação</option>
+                        <option value="Fechado">Fechado</option>
+                        <option value="Perdido">Perdido</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn-acao" id="btnSalvarLead">Salvar Lead</button>
                 <button type="button" class="btn-cancelar" onclick="fecharModais()">Cancelar</button>
             </form>
         </div>
     </div>
 
-    <!-- MODAL 4: EXCLUIR -->
-    <div class="modal-overlay" id="modalExcluir">
+    <!-- MODAL: GERENCIAR PRODUTOS -->
+    <div class="modal-overlay" id="modalProdutos">
         <div class="modal-content">
-            <h2 style="color: #f44336; border-color: #f44336;">Excluir Cliente</h2>
-            <p style="color: #ccc; margin-bottom: 20px;">Tem certeza? O cliente e todo o histórico de notas serão apagados permanentemente.</p>
-            <form action="/deletar_lead" method="POST">
-                <input type="hidden" name="lead_id" id="del_id">
-                <button type="submit" class="btn-salvar" style="background-color: #f44336; color: white;">Sim, Excluir</button>
-                <button type="button" class="btn-cancelar" onclick="fecharModais()">Cancelar</button>
+            <h2 style="color:#ff8c00; font-size: 1.2em; margin-top:0;">Meus Produtos (Max 20)</h2>
+            <form action="/adicionar_produto" method="POST" style="margin-bottom: 20px;">
+                <div class="form-group"><input type="text" name="nome" placeholder="Nome do Produto" required></div>
+                <div class="form-group"><input type="text" name="descricao" placeholder="Breve descrição"></div>
+                <button type="submit" class="btn-acao">Adicionar Produto</button>
             </form>
+            
+            <div style="max-height: 200px; overflow-y: auto;">
+                {% for p in produtos %}
+                <div class="produto-item">
+                    <span><strong>{{ p.nome }}</strong></span>
+                    <form action="/deletar_produto" method="POST" style="margin:0;"><input type="hidden" name="produto_id" value="{{ p.id }}"><button type="submit" class="btn-del">❌</button></form>
+                </div>
+                {% endfor %}
+            </div>
+            <button type="button" class="btn-cancelar" onclick="fecharModais()">Voltar</button>
         </div>
     </div>
 
     <script>
-        function fecharModais() {
-            document.querySelectorAll('.modal-overlay').forEach(el => el.style.display = 'none');
-        }
-        function abrirModal(id) { fecharModais(); document.getElementById(id).style.display = 'flex'; }
+        function abrirModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function fecharModais() { document.querySelectorAll('.modal-overlay').forEach(el => el.style.display = 'none'); }
         
-        function abrirModalEditar(id, nome, empresa, interesse, contato) {
-            document.getElementById('edit_id').value = id;
-            document.getElementById('edit_nome').value = nome;
-            document.getElementById('edit_empresa').value = empresa;
-            document.getElementById('edit_interesse').value = interesse;
-            document.getElementById('edit_contato').value = contato;
-            abrirModal('modalEditar');
+        function prepararEdicao(id, nome, empresa, interesse, telefone, email, endereco, status) {
+            document.getElementById('formLead').action = '/editar_lead';
+            document.getElementById('tituloModalLead').innerText = 'Editar Lead';
+            document.getElementById('btnSalvarLead').innerText = 'Salvar Alterações';
+            document.getElementById('lead_id').value = id;
+            document.getElementById('lead_nome').value = nome;
+            document.getElementById('lead_empresa').value = empresa;
+            document.getElementById('lead_interesse').value = interesse;
+            document.getElementById('lead_telefone').value = telefone;
+            document.getElementById('lead_email').value = email;
+            document.getElementById('lead_endereco').value = endereco;
+            document.getElementById('lead_status').value = status;
+            abrirModal('modalLead');
         }
-        
-        function abrirModalNota(id) {
-            document.getElementById('nota_lead_id').value = id;
-            abrirModal('modalNota');
-        }
-        
-        function abrirModalExcluir(id) {
-            document.getElementById('del_id').value = id;
-            abrirModal('modalExcluir');
+
+        function copiarLinkCaptura(token) {
+            const url = window.location.origin + '/captura/' + token;
+            navigator.clipboard.writeText(url).then(() => {
+                alert('✅ Link copiado com sucesso!\n\nEnvie este link para seus clientes ou cole na Bio do Instagram:\n\n' + url);
+            }).catch(err => {
+                alert('Erro ao copiar. Copie manualmente: ' + url);
+            });
         }
     </script>
 </body>

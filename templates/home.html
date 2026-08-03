@@ -13,6 +13,14 @@
         .logout-btn { color: #666; text-decoration: none; font-size: 1.2em; }
         
         .content { padding: 20px; }
+        
+        /* NOVO: ESTILOS DO PIPELINE (CAIXAS D'ÁGUA) */
+        .pipeline-dashboard { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; }
+        .pipe-card { flex: 1; min-width: 80px; background-color: #1e1e1e; border-radius: 6px; padding: 15px 10px; text-align: center; border-top: 3px solid #ff8c00; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        .pipe-card span { display: block; font-size: 0.70em; color: #aaa; text-transform: uppercase; margin-bottom: 5px; font-weight: bold;}
+        .pipe-card strong { font-size: 1.5em; color: #fff; }
+        /* ----------------------------------------- */
+
         .card { background-color: #1e1e1e; border-radius: 6px; padding: 20px; margin-bottom: 15px; cursor: pointer; border-left: 3px solid transparent; transition: all 0.2s ease; display: block; color: inherit; text-decoration: none; }
         .card:hover { border-left-color: #ff8c00; background-color: #252525; }
         .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
@@ -67,6 +75,15 @@
         </header>
         
         <div class="content">
+            
+            <!-- NOVO: DASHBOARD PIPELINE (CAIXAS D'ÁGUA) -->
+            <div class="pipeline-dashboard">
+                <div class="pipe-card"><span>Qualificação</span><strong>{{ pipeline.get('Qualificação', 0) }}</strong></div>
+                <div class="pipe-card"><span>Negociação</span><strong>{{ pipeline.get('Negociação', 0) }}</strong></div>
+                <div class="pipe-card"><span>Fechado</span><strong>{{ pipeline.get('Fechado', 0) }}</strong></div>
+                <div class="pipe-card" style="border-top-color: #e74c3c;"><span>Perdido</span><strong>{{ pipeline.get('Perdido', 0) }}</strong></div>
+            </div>
+            
             <div class="card" onclick="abrirModalAgenda()">
                 <div class="card-header"><span class="card-title">Minha Agenda</span><span class="card-icon">📅</span></div>
                 <p class="card-desc">
@@ -87,6 +104,7 @@
         </div>
     </div>
 
+    <!-- MODAL 1: CALENDÁRIO -->
     <div class="modal-overlay" id="modalAgenda">
         <div class="modal-content">
             <div class="coluna">
@@ -105,6 +123,7 @@
                     
                     <div class="form-group" id="group-lead">
                         <label>Selecionar Lead</label>
+                        <!-- O Select envia o ID e o Título juntos -->
                         <select name="titulo_compromisso" id="select-lead" required onchange="verificarNovoLead(this)">
                             <option value="" disabled selected>Selecione um cliente da base...</option>
                             {% for lead in leads %}
@@ -144,6 +163,7 @@
         </div>
     </div>
 
+    <!-- MODAL 2: REGISTRAR ANDAMENTO -->
     <div class="modal-overlay" id="modalFeedback">
         <div class="modal-content modal-feedback">
             <h2>Registrar Andamento</h2>
@@ -151,7 +171,9 @@
             
             <form action="/salvar_feedback" method="POST">
                 <input type="hidden" name="evento_id" id="input-evento-id">
-                <input type="hidden" name="lead_id" id="input-lead-id"> <div class="form-group">
+                <input type="hidden" name="lead_id" id="input-lead-id">
+                
+                <div class="form-group">
                     <label>Como foi? (Obrigatório)</label>
                     <textarea name="observacoes" id="input-observacoes" placeholder="Ex: Cliente achou caro, pediu para retornar..." required></textarea>
                 </div>
@@ -210,7 +232,6 @@
             let html = `<strong style="color: #fff; display: block; margin-bottom: 10px;">Clique em um evento para registrar andamento:</strong>`;
             eventos.forEach(ev => {
                 let obsLimpa = ev.obs.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-                // Adicionamos a passagem do ev.lead_id para a função Javascript
                 html += `<div class="evento-item" onclick="abrirModalFeedback(${ev.id}, '${ev.titulo}', '${obsLimpa}', '${ev.lead_id}')">${ev.hora} - ${ev.titulo}</div>`;
             });
             painel.innerHTML = html;
@@ -239,13 +260,12 @@
             if (!obs.trim()) { alert('⚠️ Preencha a observação antes de reagendar!'); return; }
             
             let evId = document.getElementById('input-evento-id').value;
-            let leadId = document.getElementById('input-lead-id').value; // Resgata o lead para manter o link
+            let leadId = document.getElementById('input-lead-id').value;
             fecharModais();
             
             document.getElementById('form-agenda').action = '/salvar_feedback';
             document.getElementById('titulo-form-agenda').innerText = 'Reagendar Compromisso';
             
-            // Esconde os campos desnecessários do novo agendamento
             document.getElementById('group-lead').style.display = 'none';
             document.getElementById('group-nota-agenda').style.display = 'none';
             document.getElementById('select-lead').removeAttribute('required');
@@ -266,7 +286,7 @@
             document.getElementById('modalAgenda').style.display = 'none'; 
             document.getElementById('modalFeedback').style.display = 'flex';
             document.getElementById('input-evento-id').value = id;
-            document.getElementById('input-lead-id').value = lead_id; // Passa o elo pro modal
+            document.getElementById('input-lead-id').value = lead_id; 
             document.getElementById('feedback-titulo').innerText = titulo;
             document.getElementById('input-observacoes').value = obs; 
         }

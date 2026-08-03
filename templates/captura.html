@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulário de Contato</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #000000; color: #e0e0e0; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .form-container { background-color: #121212; width: 100%; max-width: 400px; padding: 30px; border-radius: 8px; border-top: 4px solid #ff8c00; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        h1 { color: #ff8c00; font-size: 1.5em; text-align: center; margin-top: 0; }
+        p { text-align: center; color: #aaa; font-size: 0.9em; margin-bottom: 25px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; color: #ccc; margin-bottom: 5px; font-size: 0.9em; }
+        input, select { width: 100%; background-color: #1e1e1e; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 4px; box-sizing: border-box; font-size: 1em; }
+        input:focus, select:focus { outline: none; border-color: #ff8c00; }
+        button { background-color: #ff8c00; color: #000; border: none; padding: 15px; border-radius: 4px; font-weight: bold; cursor: pointer; text-transform: uppercase; width: 100%; font-size: 1.1em; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h1>Solicitar Contato</h1>
+        <p>Preencha os dados abaixo e entraremos em contato com você.</p>
+        
+        <form action="/captura_submit/{{ token }}" method="POST">
+            <div class="form-group"><label>Seu Nome Completo</label><input type="text" name="nome" required></div>
+            <div class="form-group"><label>Nome da Empresa (Opcional)</label><input type="text" name="empresa"></div>
+            <div class="form-group"><label>WhatsApp com DDD</label><input type="tel" name="telefone" placeholder="Ex: (11) 99999-9999" required></div>
+            <div class="form-group"><label>E-mail</label><input type="email" name="email" required></div>
+            <div class="form-group"><label>Endereço / Cidade</label><input type="text" name="endereco"></div>
+            
+            <div class="form-group">
+                <label>Sobre o que deseja falar?</label>
+                <select name="interesse">
+                    <option value="Geral">Interesse Geral</option>
+                    {% for prod in produtos %}
+                        <option value="{{ prod }}">{{ prod }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <button type="submit">Enviar Dados</button>
+        </form>
+    </div>
+</body>
+</html>
