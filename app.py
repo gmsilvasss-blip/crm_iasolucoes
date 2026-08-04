@@ -106,17 +106,46 @@ def minha_agenda():
 @app.route('/salvar_feedback', methods=['POST'])
 def salvar_feedback():
     if 'usuario_id' not in session: return redirect(url_for('login'))
-    evento_id = request.form.get('evento_id'); lead_id = request.form.get('lead_id'); observacoes = request.form.get('observacoes'); acao = request.form.get('acao') 
+    
+    # MANTIDO: Captura de variáveis originais
+    evento_id = request.form.get('evento_id')
+    lead_id = request.form.get('lead_id')
+    observacoes = request.form.get('observacoes')
+    acao = request.form.get('acao') 
+    
+    # NOVO: Captura o novo status enviado pelo HTML
+    novo_status_lead = request.form.get('novo_status_lead') 
+    
     try:
         conn = conectar_banco(); cur = conn.cursor(); prefixo = ""
-        if acao == 'excluir': cur.execute("DELETE FROM agenda WHERE id = %s AND usuario_id = %s", (evento_id, session['usuario_id'])); prefixo = "[Cancelado/Excluído]"
+        
+        # ==========================================
+        # NOVO: ATUALIZA O STATUS DO LEAD NA BASE
+        # ==========================================
+        if novo_status_lead and lead_id and lead_id != "None":
+            cur.execute("UPDATE leads SET status = %s WHERE id = %s AND usuario_id = %s", (novo_status_lead, lead_id, session['usuario_id']))
+
+        # ==========================================
+        # MANTIDO: LÓGICA EXISTENTE DA AGENDA E NOTAS
+        # ==========================================
+        if acao == 'excluir': 
+            cur.execute("DELETE FROM agenda WHERE id = %s AND usuario_id = %s", (evento_id, session['usuario_id']))
+            prefixo = "[Cancelado/Excluído]"
         elif acao == 'reagendar': 
             nova_data = request.form.get('data_compromisso'); nova_hora = request.form.get('hora_compromisso')
-            cur.execute("UPDATE agenda SET observacoes = %s, status = 'Pendente', data_hora = %s WHERE id = %s AND usuario_id = %s", (observacoes, f"{nova_data} {nova_hora}:00", evento_id, session['usuario_id'])); prefixo = f"[Reagendado para {nova_data} às {nova_hora}]"
-        else: cur.execute("UPDATE agenda SET observacoes = %s, status = 'Concluído' WHERE id = %s AND usuario_id = %s", (observacoes, evento_id, session['usuario_id'])); prefixo = "[Concluído]"
-        if lead_id and lead_id != "None": cur.execute("INSERT INTO notas_leads (lead_id, nota) VALUES (%s, %s)", (lead_id, f"{prefixo} {observacoes}"[:300]))
+            cur.execute("UPDATE agenda SET observacoes = %s, status = 'Pendente', data_hora = %s WHERE id = %s AND usuario_id = %s", (observacoes, f"{nova_data} {nova_hora}:00", evento_id, session['usuario_id']))
+            prefixo = f"[Reagendado para {nova_data} às {nova_hora}]"
+        else: 
+            cur.execute("UPDATE agenda SET observacoes = %s, status = 'Concluído' WHERE id = %s AND usuario_id = %s", (observacoes, evento_id, session['usuario_id']))
+            prefixo = "[Concluído]"
+            
+        if lead_id and lead_id != "None": 
+            cur.execute("INSERT INTO notas_leads (lead_id, nota) VALUES (%s, %s)", (lead_id, f"{prefixo} {observacoes}"[:300]))
+            
         conn.commit(); cur.close(); conn.close()
-    except: pass
+    except Exception as e: 
+        print(f"Erro ao salvar feedback: {e}")
+        
     return redirect(url_for('home'))
 
 # ==========================================
@@ -148,6 +177,14 @@ def base_leads():
         cur.close(); conn.close()
     except Exception as e: print(f"Erro Base Leads: {e}")
     return render_template('base_leads.html', leads=leads_processados, produtos=produtos, token=token_publico)
+
+@app.route('/captura')
+def captura():
+    if 'usuario_id' not in session:
+        return redirect(url_for('login'))
+    
+    # Renderiza a página de captura para o usuário logado
+    return render_template('captura.html')
 
 @app.route('/cadastrar_lead', methods=['POST'])
 def cadastrar_lead():
