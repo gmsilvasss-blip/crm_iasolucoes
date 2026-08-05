@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configurações - CRM IA Soluções</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #000000; color: #e0e0e0; margin: 0; padding: 0; display: flex; justify-content: center; }
+        .app-container { width: 100%; max-width: 480px; background-color: #121212; min-height: 100vh; padding-bottom: 40px; box-sizing: border-box; }
+        
+        header { padding: 25px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; }
+        h1 { color: #ff8c00; font-size: 1.2em; margin: 0; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
+        
+        .content { padding: 20px; }
+
+        .form-section { background-color: #1e1e1e; padding: 20px; border-radius: 6px; margin-bottom: 20px; border-left: 3px solid #ff8c00; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        .form-section h2 { font-size: 1em; color: #fff; margin-top: 0; margin-bottom: 15px; text-transform: uppercase; border-bottom: 1px solid #333; padding-bottom: 8px;}
+        
+        .form-group { margin-bottom: 15px; display: flex; flex-direction: column; }
+        .form-group label { color: #aaa; font-size: 0.85em; margin-bottom: 5px; }
+        .form-group input { background-color: #121212; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 4px; font-size: 1em; box-sizing: border-box; width: 100%; }
+        .form-group input:focus { outline: none; border-color: #ff8c00; }
+        
+        .row { display: flex; gap: 10px; }
+        .col { flex: 1; display: flex; flex-direction: column; }
+
+        .btn-acao { background-color: #ff8c00; color: #000; border: none; padding: 15px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 1em; width: 100%; text-transform: uppercase; margin-bottom: 12px; transition: background 0.2s; }
+        .btn-acao:hover { background-color: #e67e22; }
+        
+        .btn-cancelar { background: transparent; color: #aaa; border: 1px solid #333; padding: 15px; border-radius: 4px; cursor: pointer; font-size: 1em; width: 100%; text-align: center; text-decoration: none; display: block; box-sizing: border-box; text-transform: uppercase; font-weight: bold; }
+        .btn-cancelar:hover { background-color: #1e1e1e; color: #fff; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <h1>⚙️ Configurações</h1>
+        </header>
+        
+        <div class="content">
+            <!-- O formulário envia os dados para a nova rota que processará o UPDATE no banco -->
+            <form action="/salvar_configuracoes" method="POST">
+                
+                <!-- BLOCO 1: DADOS DE ACESSO -->
+                <div class="form-section">
+                    <h2>Dados de Acesso</h2>
+                    <div class="form-group">
+                        <label>E-mail de Login</label>
+                        <input type="email" name="email" value="{{ usuario.email }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Telefone (WhatsApp)</label>
+                        <input type="text" name="telefone" value="{{ usuario.telefone }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Nova Senha</label>
+                        <input type="password" name="nova_senha" placeholder="Deixe em branco para não alterar">
+                    </div>
+                </div>
+
+                <!-- BLOCO 2: REGRAS DE NEGÓCIO -->
+                <div class="form-section">
+                    <h2>Regras de Negócio</h2>
+                    <div class="form-group">
+                        <label>Comissão Padrão (%)</label>
+                        <!-- Carrega o valor atual do banco, com um fallback visual para 10 -->
+                        <input type="number" step="0.1" name="comissao" value="{{ usuario.percentual_comissao | default(10) }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Local de Atuação (CEP Base)</label>
+                        <input type="text" name="cep_atuacao" value="{{ usuario.cep_atuacao | default('') }}" placeholder="Ex: 01000-000">
+                    </div>
+                    <div class="row">
+                        <div class="col form-group">
+                            <label>Início Expediente</label>
+                            <input type="time" name="horario_inicio" value="{{ usuario.horario_inicio | default('08:00') }}" required>
+                        </div>
+                        <div class="col form-group">
+                            <label>Fim Expediente</label>
+                            <input type="time" name="horario_fim" value="{{ usuario.horario_fim | default('18:00') }}" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AÇÕES -->
+                <button type="submit" class="btn-acao">Salvar Alterações</button>
+                <a href="/home" class="btn-cancelar">Cancelar e Voltar</a>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
