@@ -285,7 +285,20 @@ def base_leads():
 def captura():
     if 'usuario_id' not in session:
         return redirect(url_for('login'))
-    return render_template('captura.html')
+    
+    try:
+        # Conecta no banco para pegar o token único do usuário logado
+        conn = conectar_banco()
+        cur = conn.cursor()
+        cur.execute("SELECT token_publico FROM usuarios WHERE id = %s", (session['usuario_id'],))
+        token = cur.fetchone()[0]
+        cur.close()
+        conn.close()
+        
+        # Redireciona para a página de captura funcional passando o token
+        return redirect(f'/captura/{token}')
+    except Exception as e:
+        return f"Erro ao gerar link de captura: {e}"
 
 @app.route('/cadastrar_lead', methods=['POST'])
 def cadastrar_lead():
