@@ -53,13 +53,20 @@ def logout():
     session.pop('usuario_id', None); return redirect(url_for('inicio'))
 
 # ==========================================
-# MÓDULO: AGENDA E DASHBOARD
+# MÓDULO: AGENDA E DASHBOARD (ATUALIZADO FASE 4)
 # ==========================================
 @app.route('/home')
 def home():
     if 'usuario_id' not in session: return redirect(url_for('login'))
     proximo_compromisso = None; eventos_calendario = []; lista_leads = []; lista_produtos = []
     pipeline = {'Qualificação': 0, 'Negociação': 0, 'Fechado': 0, 'Perdido': 0}
+    
+    # Novas variáveis financeiras
+    faturamento_total = 0.0
+    comissao_total = 0.0
+    graf_labels = []
+    graf_valores = []
+
     try:
         conn = conectar_banco(); cur = conn.cursor()
         
@@ -82,14 +89,44 @@ def home():
         cur.execute("SELECT id, nome, empresa FROM leads WHERE usuario_id = %s ORDER BY nome ASC", (session['usuario_id'],))
         lista_leads = [{"id": l[0], "nome": l[1], "empresa": l[2]} for l in cur.fetchall()]
         
-        # Busca produtos para o frontend de fechamento na Fase 3
+        # Busca produtos
         cur.execute("SELECT id, nome, preco FROM produtos WHERE usuario_id = %s ORDER BY nome ASC", (session['usuario_id'],))
         lista_produtos = [{"id": p[0], "nome": p[1], "preco": float(p[2]) if p[2] else 0.0} for p in cur.fetchall()]
+        
+        # ==========================================
+        # INÍCIO FASE 4: CÁLCULOS FINANCEIROS
+        # ==========================================
+        # 1. Faturamento Total
+        cur.execute("SELECT COALESCE(SUM(valor_total), 0) FROM vendas WHERE usuario_id = %s", (session['usuario_id'],))
+        fat_res = cur.fetchone()
+        faturamento_total = float(fat_res[0]) if fat_res else 0.0
+        comissao_total = faturamento_total * 0.10  # Calculando 10% de comissão
+        
+        # 2. Dados do Gráfico (Vendas por Produto)
+        cur.execute("""
+            SELECT p.nome, COALESCE(SUM(v.valor_total), 0)
+            FROM vendas v
+            JOIN produtos p ON v.produto_id = p.id
+            WHERE v.usuario_id = %s
+            GROUP BY p.nome
+        """, (session['usuario_id'],))
+        for row in cur.fetchall():
+            graf_labels.append(row[0])
+            graf_valores.append(float(row[1]))
             
         cur.close(); conn.close()
     except Exception as e: print(f"Erro BD Home: {e}")
     
-    return render_template('home.html', compromisso=proximo_compromisso, eventos_json=json.dumps(eventos_calendario), leads=lista_leads, pipeline=pipeline, produtos=lista_produtos)
+    return render_template('home.html', 
+                           compromisso=proximo_compromisso, 
+                           eventos_json=json.dumps(eventos_calendario), 
+                           leads=lista_leads, 
+                           pipeline=pipeline, 
+                           produtos=lista_produtos,
+                           faturamento=faturamento_total,
+                           comissao=comissao_total,
+                           graf_labels=json.dumps(graf_labels),
+                           graf_valores=json.dumps(graf_valores))
 
 @app.route('/minha_agenda', methods=['POST'])
 def minha_agenda():
@@ -199,11 +236,7 @@ def cadastrar_lead():
     if 'usuario_id' not in session: return redirect(url_for('login'))
     nome = request.form.get('nome'); empresa = request.form.get('empresa'); interesse = request.form.get('interesse')
     telefone = request.form.get('telefone'); email = request.form.get('email'); status = request.form.get('status')
-    
-    # Campo antigo preservado
     endereco = request.form.get('endereco') 
-    
-    # Novos campos geográficos
     rua = request.form.get('rua'); numero = request.form.get('numero')
     bairro = request.form.get('bairro'); cidade = request.form.get('cidade'); cep = request.form.get('cep')
     
@@ -223,11 +256,7 @@ def editar_lead():
     if 'usuario_id' not in session: return redirect(url_for('login'))
     lead_id = request.form.get('lead_id'); nome = request.form.get('nome'); empresa = request.form.get('empresa'); interesse = request.form.get('interesse')
     telefone = request.form.get('telefone'); email = request.form.get('email'); status = request.form.get('status')
-    
-    # Campo antigo preservado
     endereco = request.form.get('endereco')
-    
-    # Novos campos geográficos
     rua = request.form.get('rua'); numero = request.form.get('numero')
     bairro = request.form.get('bairro'); cidade = request.form.get('cidade'); cep = request.form.get('cep')
     
@@ -259,7 +288,7 @@ def adicionar_nota():
 def adicionar_produto():
     if 'usuario_id' not in session: return redirect(url_for('login'))
     nome = request.form.get('nome'); descricao = request.form.get('descricao')
-    preco = request.form.get('preco', 0.0) # Preço capturado ou zerado como fallback
+    preco = request.form.get('preco', 0.0) 
     
     try:
         conn = conectar_banco(); cur = conn.cursor()
