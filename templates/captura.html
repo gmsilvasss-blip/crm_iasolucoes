@@ -32,12 +32,8 @@
             <p class="subtitle">Preencha os dados abaixo e entraremos em contato rapidamente.</p>
         </header>
         
-        <!-- O action deve apontar para a rota do seu backend que processa a captura pública (ex: /capturar_lead ou /cadastrar_lead_publico) -->
-        <form action="/capturar_lead" method="POST">
-            <!-- Caso use um token de rastreio na URL, ele pode ser passado aqui -->
-            {% if token %}
-            <input type="hidden" name="token" value="{{ token }}">
-            {% endif %}
+        <!-- Apontando a ação para a rota correta passando o token pela URL -->
+        <form action="/captura_submit/{{ token }}" method="POST">
             
             <div class="form-group">
                 <label>Nome Completo *</label>
@@ -88,11 +84,14 @@
             
             <div class="form-group">
                 <label>O que você está buscando?</label>
-                <select name="interesse">
-                    <option value="Geral">Interesse Geral</option>
-                    {% for p in produtos %}
-                    <option value="{{ p.nome }}">{{ p.nome }}</option>
+                <select name="interesse" required>
+                    <option value="Interesse Geral">Interesse Geral</option>
+                    
+                    <!-- Loop do Jinja para puxar os produtos dinamicamente -->
+                    {% for produto in produtos %}
+                        <option value="{{ produto }}">{{ produto }}</option>
                     {% endfor %}
+                    
                 </select>
             </div>
 
