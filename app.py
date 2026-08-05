@@ -279,12 +279,27 @@ def base_leads():
         cur.execute("SELECT id, nome, descricao, preco FROM produtos WHERE usuario_id = %s ORDER BY nome ASC", (session['usuario_id'],))
         produtos = [{"id": p[0], "nome": p[1], "desc": p[2], "preco": float(p[3]) if p[3] else 0.0} for p in cur.fetchall()]
         
-        cur.execute("SELECT id, nome, empresa, interesse, telefone, email, endereco, status FROM leads WHERE usuario_id = %s ORDER BY id DESC", (session['usuario_id'],))
+        cur.execute("SELECT id, nome, empresa, interesse, telefone, email, endereco, status, cep, rua, numero, bairro, cidade FROM leads WHERE usuario_id = %s ORDER BY id DESC", (session['usuario_id'],))
         for l in cur.fetchall():
             lead_id = l[0]
             cur.execute("SELECT nota, data_criacao FROM notas_leads WHERE lead_id = %s ORDER BY data_criacao DESC", (lead_id,))
             lista_notas = [{"texto": n[0], "data": n[1].strftime('%d/%m %H:%M')} for n in cur.fetchall()]
-            leads_processados.append({"id": lead_id, "nome": l[1], "empresa": l[2], "interesse": l[3], "telefone": l[4], "email": l[5], "endereco": l[6], "status": l[7], "notas": lista_notas})
+            leads_processados.append({
+                "id": lead_id, 
+                "nome": l[1], 
+                "empresa": l[2], 
+                "interesse": l[3], 
+                "telefone": l[4], 
+                "email": l[5], 
+                "endereco": l[6], 
+                "status": l[7], 
+                "cep": l[8], 
+                "rua": l[9], 
+                "numero": l[10], 
+                "bairro": l[11], 
+                "cidade": l[12], 
+                "notas": lista_notas
+            })
             
         cur.close(); conn.close()
     except Exception as e: print(f"Erro Base Leads: {e}")
