@@ -5,6 +5,7 @@ from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, session
 from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
+import psycopg2.extras
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "chave_secreta_desenvolvimento")
