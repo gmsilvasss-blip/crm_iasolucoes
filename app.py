@@ -134,6 +134,7 @@ def home():
                            produtos=lista_produtos,
                            faturamento=faturamento_total,
                            comissao=comissao_total,
+                           percentual_comissao=percentual_comissao,
                            graf_labels=json.dumps(graf_labels),
                            graf_valores=json.dumps(graf_valores))
 
