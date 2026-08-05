@@ -3,42 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Formulário de Contato</title>
+    <title>Cadastro - CRM IA Soluções</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #000000; color: #e0e0e0; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .form-container { background-color: #121212; width: 100%; max-width: 400px; padding: 30px; border-radius: 8px; border-top: 4px solid #ff8c00; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        h1 { color: #ff8c00; font-size: 1.5em; text-align: center; margin-top: 0; }
-        p { text-align: center; color: #aaa; font-size: 0.9em; margin-bottom: 25px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #000000; color: #e0e0e0; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .app-container { width: 100%; max-width: 480px; background-color: #121212; padding: 25px 20px; box-sizing: border-box; border-radius: 8px; border: 1px solid #333; box-shadow: 0 4px 15px rgba(0,0,0,0.5); margin: 15px; }
+        header { text-align: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid #222; }
+        h1 { color: #ff8c00; font-size: 1.5em; margin: 0; text-transform: uppercase; letter-spacing: 1px; }
+        p.subtitle { color: #aaa; font-size: 0.9em; margin-top: 8px; }
+        
         .form-group { margin-bottom: 15px; }
-        label { display: block; color: #ccc; margin-bottom: 5px; font-size: 0.9em; }
-        input, select { width: 100%; background-color: #1e1e1e; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 4px; box-sizing: border-box; font-size: 1em; }
-        input:focus, select:focus { outline: none; border-color: #ff8c00; }
-        button { background-color: #ff8c00; color: #000; border: none; padding: 15px; border-radius: 4px; font-weight: bold; cursor: pointer; text-transform: uppercase; width: 100%; font-size: 1.1em; margin-top: 10px; }
+        .form-group label { color: #aaa; font-size: 0.85em; display: block; margin-bottom: 5px; }
+        .form-group input, .form-group select { width: 100%; background-color: #1e1e1e; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 4px; box-sizing: border-box; font-size: 1em; }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: #ff8c00; }
+        
+        .row { display: flex; gap: 10px; margin-bottom: 15px; }
+        .col { display: flex; flex-direction: column; }
+        .col-2 { flex: 2; }
+        .col-1 { flex: 1; }
+        
+        .btn-acao { background-color: #ff8c00; color: #000; border: none; padding: 15px; border-radius: 4px; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 1em; width: 100%; display: block; text-align: center; margin-top: 25px; transition: background 0.2s; }
+        .btn-acao:hover { background-color: #e67e22; }
     </style>
 </head>
 <body>
-    <div class="form-container">
-        <h1>Solicitar Contato</h1>
-        <p>Preencha os dados abaixo e entraremos em contato com você.</p>
+    <div class="app-container">
+        <header>
+            <h1>Bem-vindo!</h1>
+            <p class="subtitle">Preencha os dados abaixo e entraremos em contato rapidamente.</p>
+        </header>
         
-        <form action="/captura_submit/{{ token }}" method="POST">
-            <div class="form-group"><label>Seu Nome Completo</label><input type="text" name="nome" required></div>
-            <div class="form-group"><label>Nome da Empresa (Opcional)</label><input type="text" name="empresa"></div>
-            <div class="form-group"><label>WhatsApp com DDD</label><input type="tel" name="telefone" placeholder="Ex: (11) 99999-9999" required></div>
-            <div class="form-group"><label>E-mail</label><input type="email" name="email" required></div>
-            <div class="form-group"><label>Endereço / Cidade</label><input type="text" name="endereco"></div>
+        <!-- O action deve apontar para a rota do seu backend que processa a captura pública (ex: /capturar_lead ou /cadastrar_lead_publico) -->
+        <form action="/capturar_lead" method="POST">
+            <!-- Caso use um token de rastreio na URL, ele pode ser passado aqui -->
+            {% if token %}
+            <input type="hidden" name="token" value="{{ token }}">
+            {% endif %}
             
             <div class="form-group">
-                <label>Sobre o que deseja falar?</label>
+                <label>Nome Completo *</label>
+                <input type="text" name="nome" required placeholder="Como podemos te chamar?">
+            </div>
+            
+            <div class="form-group">
+                <label>Empresa</label>
+                <input type="text" name="empresa" placeholder="Nome do seu negócio (opcional)">
+            </div>
+            
+            <div class="form-group">
+                <label>WhatsApp *</label>
+                <input type="text" name="telefone" required placeholder="(11) 99999-9999">
+            </div>
+            
+            <div class="form-group">
+                <label>E-mail</label>
+                <input type="email" name="email" placeholder="seu@email.com">
+            </div>
+            
+            <!-- INÍCIO: Novos campos granulares de endereço -->
+            <div class="form-group">
+                <label>CEP</label>
+                <input type="text" name="cep" id="cep" placeholder="00000-000">
+            </div>
+            <div class="row">
+                <div class="col col-2">
+                    <label style="color: #aaa; font-size: 0.85em; margin-bottom: 5px;">Rua *</label>
+                    <input type="text" name="rua" id="rua" style="background-color: #1e1e1e; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 4px; box-sizing: border-box;" required>
+                </div>
+                <div class="col col-1">
+                    <label style="color: #aaa; font-size: 0.85em; margin-bottom: 5px;">Nº *</label>
+                    <input type="text" name="numero" id="numero" style="background-color: #1e1e1e; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 4px; box-sizing: border-box;" required>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col col-1">
+                    <label style="color: #aaa; font-size: 0.85em; margin-bottom: 5px;">Bairro *</label>
+                    <input type="text" name="bairro" id="bairro" style="background-color: #1e1e1e; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 4px; box-sizing: border-box;" required>
+                </div>
+                <div class="col col-1">
+                    <label style="color: #aaa; font-size: 0.85em; margin-bottom: 5px;">Cidade *</label>
+                    <input type="text" name="cidade" id="cidade" style="background-color: #1e1e1e; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 4px; box-sizing: border-box;" required>
+                </div>
+            </div>
+            <!-- FIM: Novos campos granulares de endereço -->
+            
+            <div class="form-group">
+                <label>O que você está buscando?</label>
                 <select name="interesse">
                     <option value="Geral">Interesse Geral</option>
-                    {% for prod in produtos %}
-                        <option value="{{ prod }}">{{ prod }}</option>
+                    {% for p in produtos %}
+                    <option value="{{ p.nome }}">{{ p.nome }}</option>
                     {% endfor %}
                 </select>
             </div>
-            
-            <button type="submit">Enviar Dados</button>
+
+            <button type="submit" class="btn-acao">Enviar Informações</button>
         </form>
     </div>
 </body>
