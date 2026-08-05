@@ -144,7 +144,61 @@ def minha_agenda():
         conn.commit(); cur.close(); conn.close()
     except: pass
     return redirect(url_for('home'))
+@app.route('/config')
+def config():
+    if 'usuario_id' not in session:
+        return redirect('/login')
+    
+    conn = sqlite3.connect('crm.db')
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    # Puxa os dados atuais para preencher os campos no HTML
+    cursor.execute("SELECT * FROM usuarios WHERE id = ?", (session['usuario_id'],))
+    usuario = cursor.fetchone()
+    conn.close()
+    
+    return render_template('config.html', usuario=usuario)
 
+@app.route('/salvar_configuracoes', methods=['POST'])
+def salvar_configuracoes():
+    if 'usuario_id' not in session:
+        return redirect('/login')
+        
+    email = request.form.get('email')
+    telefone = request.form.get('telefone')
+    nova_senha = request.form.get('nova_senha')
+    comissao = request.form.get('comissao')
+    cep = request.form.get('cep_atuacao')
+    inicio = request.form.get('horario_inicio')
+    fim = request.form.get('horario_fim')
+    
+    conn = sqlite3.connect('crm.db')
+    cursor = conn.cursor()
+    
+    if nova_senha: 
+        # Se preencheu a nova senha, atualizamos ela também
+        # Lembre-se de aplicar o mesmo hash (ex: werkzeug.security) que você usa no cadastro!
+        cursor.execute("""
+            UPDATE usuarios 
+            SET email = ?, telefone = ?, senha = ?, percentual_comissao = ?, 
+                cep_atuacao = ?, horario_inicio = ?, horario_fim = ?
+            WHERE id = ?
+        """, (email, telefone, nova_senha, comissao, cep, inicio, fim, session['usuario_id']))
+    else: 
+        # Mantém a senha atual intacta
+        cursor.execute("""
+            UPDATE usuarios 
+            SET email = ?, telefone = ?, percentual_comissao = ?, 
+                cep_atuacao = ?, horario_inicio = ?, horario_fim = ?
+            WHERE id = ?
+        """, (email, telefone, comissao, cep, inicio, fim, session['usuario_id']))
+        
+    conn.commit()
+    conn.close()
+    
+    return redirect('/home')
+    
 @app.route('/salvar_feedback', methods=['POST'])
 def salvar_feedback():
     if 'usuario_id' not in session: return redirect(url_for('login'))
