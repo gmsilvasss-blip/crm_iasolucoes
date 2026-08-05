@@ -16,7 +16,7 @@
         
         /* Ações do Canto Superior Direito */
         .header-actions { display: flex; gap: 15px; align-items: center; }
-        .btn-header { background: none; border: none; font-size: 1.4em; cursor: pointer; transition: transform 0.2s; padding: 0; }
+        .btn-header { background: none; border: none; font-size: 1.4em; cursor: pointer; transition: transform 0.2s; padding: 0; display: inline-block; }
         .btn-header:hover { transform: scale(1.1); }
         .logout-btn { color: #666; text-decoration: none; font-size: 1.2em; }
         
@@ -83,10 +83,11 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- CABEÇALHO ATUALIZADO COM O BOTÃO NO CANTO SUPERIOR DIREITO -->
+        <!-- CABEÇALHO ATUALIZADO COM O BOTÃO DE CONFIGURAÇÕES -->
         <header>
             <div class="header-info"><h1>CRM IA Soluções</h1><p>Pipeline</p></div>
             <div class="header-actions">
+                <a href="/config" class="btn-header" style="text-decoration: none;" title="Configurações">⚙️</a>
                 <button class="btn-header" onclick="toggleFinanceiro()" title="Painel Financeiro">📊</button>
                 <a href="/logout" class="logout-btn" title="Sair">🚪</a>
             </div>
