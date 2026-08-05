@@ -106,7 +106,7 @@
                     <strong style="color: #2ecc71; font-size: 1.3em; display: block; margin-top: 5px;">R$ {{ "%.2f"|format(faturamento) }}</strong>
                 </div>
                 <div class="fin-card comissao">
-                    <span style="color: #aaa; font-size: 0.75em; text-transform: uppercase; font-weight: bold;">Comissões (10%)</span>
+                    <span style="color: #aaa; font-size: 0.75em; text-transform: uppercase; font-weight: bold;">Comissões ({{ "%.0f"|format(percentual_comissao) }}%)</span>
                     <strong style="color: #3498db; font-size: 1.3em; display: block; margin-top: 5px;">R$ {{ "%.2f"|format(comissao) }}</strong>
                 </div>
             </div>
