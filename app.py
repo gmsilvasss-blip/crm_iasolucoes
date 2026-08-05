@@ -39,7 +39,7 @@ def login():
 def registro():
     if request.method == 'POST':
         email = request.form.get('email'); telefone = request.form.get('telefone'); senha = generate_password_hash(request.form.get('senha'))
-        token = secrets.token_hex(8) # Gera token único para o link de captura
+        token = secrets.token_hex(8) 
         try:
             conn = conectar_banco(); cur = conn.cursor()
             cur.execute("INSERT INTO usuarios (email, telefone, senha_hash, token_publico) VALUES (%s, %s, %s, %s)", (email, telefone, senha, token))
@@ -53,13 +53,20 @@ def logout():
     session.pop('usuario_id', None); return redirect(url_for('inicio'))
 
 # ==========================================
-# MÓDULO: AGENDA E DASHBOARD
+# MÓDULO: AGENDA E DASHBOARD (ATUALIZADO FASE 4)
 # ==========================================
 @app.route('/home')
 def home():
     if 'usuario_id' not in session: return redirect(url_for('login'))
-    proximo_compromisso = None; eventos_calendario = []; lista_leads = []
+    proximo_compromisso = None; eventos_calendario = []; lista_leads = []; lista_produtos = []
     pipeline = {'Qualificação': 0, 'Negociação': 0, 'Fechado': 0, 'Perdido': 0}
+    
+    # Novas variáveis financeiras
+    faturamento_total = 0.0
+    comissao_total = 0.0
+    graf_labels = []
+    graf_valores = []
+
     try:
         conn = conectar_banco(); cur = conn.cursor()
         
@@ -73,7 +80,7 @@ def home():
         for t in cur.fetchall():
             eventos_calendario.append({"id": t[0], "titulo": t[1], "data": t[2].strftime('%Y-%m-%d'), "hora": t[2].strftime('%H:%M'), "status": t[3], "obs": t[4] if t[4] else "", "lead_id": t[5] if t[5] else ""})
             
-        # Pipeline (Caixas D'água)
+        # Pipeline
         cur.execute("SELECT status, COUNT(*) FROM leads WHERE usuario_id = %s GROUP BY status", (session['usuario_id'],))
         for stat, count in cur.fetchall():
             if stat in pipeline: pipeline[stat] = count
@@ -81,10 +88,45 @@ def home():
         # Lista Leads p/ Modal Agenda
         cur.execute("SELECT id, nome, empresa FROM leads WHERE usuario_id = %s ORDER BY nome ASC", (session['usuario_id'],))
         lista_leads = [{"id": l[0], "nome": l[1], "empresa": l[2]} for l in cur.fetchall()]
+        
+        # Busca produtos
+        cur.execute("SELECT id, nome, preco FROM produtos WHERE usuario_id = %s ORDER BY nome ASC", (session['usuario_id'],))
+        lista_produtos = [{"id": p[0], "nome": p[1], "preco": float(p[2]) if p[2] else 0.0} for p in cur.fetchall()]
+        
+        # ==========================================
+        # INÍCIO FASE 4: CÁLCULOS FINANCEIROS
+        # ==========================================
+        # 1. Faturamento Total
+        cur.execute("SELECT COALESCE(SUM(valor_total), 0) FROM vendas WHERE usuario_id = %s", (session['usuario_id'],))
+        fat_res = cur.fetchone()
+        faturamento_total = float(fat_res[0]) if fat_res else 0.0
+        comissao_total = faturamento_total * 0.10  # Calculando 10% de comissão
+        
+        # 2. Dados do Gráfico (Vendas por Produto)
+        cur.execute("""
+            SELECT p.nome, COALESCE(SUM(v.valor_total), 0)
+            FROM vendas v
+            JOIN produtos p ON v.produto_id = p.id
+            WHERE v.usuario_id = %s
+            GROUP BY p.nome
+        """, (session['usuario_id'],))
+        for row in cur.fetchall():
+            graf_labels.append(row[0])
+            graf_valores.append(float(row[1]))
             
         cur.close(); conn.close()
     except Exception as e: print(f"Erro BD Home: {e}")
-    return render_template('home.html', compromisso=proximo_compromisso, eventos_json=json.dumps(eventos_calendario), leads=lista_leads, pipeline=pipeline)
+    
+    return render_template('home.html', 
+                           compromisso=proximo_compromisso, 
+                           eventos_json=json.dumps(eventos_calendario), 
+                           leads=lista_leads, 
+                           pipeline=pipeline, 
+                           produtos=lista_produtos,
+                           faturamento=faturamento_total,
+                           comissao=comissao_total,
+                           graf_labels=json.dumps(graf_labels),
+                           graf_valores=json.dumps(graf_valores))
 
 @app.route('/minha_agenda', methods=['POST'])
 def minha_agenda():
@@ -102,32 +144,94 @@ def minha_agenda():
         conn.commit(); cur.close(); conn.close()
     except: pass
     return redirect(url_for('home'))
+@app.route('/config')
+def config():
+    if 'usuario_id' not in session:
+        return redirect('/login')
+    
+    conn = sqlite3.connect('crm.db')
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    # Puxa os dados atuais para preencher os campos no HTML
+    cursor.execute("SELECT * FROM usuarios WHERE id = ?", (session['usuario_id'],))
+    usuario = cursor.fetchone()
+    conn.close()
+    
+    return render_template('config.html', usuario=usuario)
 
+@app.route('/salvar_configuracoes', methods=['POST'])
+def salvar_configuracoes():
+    if 'usuario_id' not in session:
+        return redirect('/login')
+        
+    email = request.form.get('email')
+    telefone = request.form.get('telefone')
+    nova_senha = request.form.get('nova_senha')
+    comissao = request.form.get('comissao')
+    cep = request.form.get('cep_atuacao')
+    inicio = request.form.get('horario_inicio')
+    fim = request.form.get('horario_fim')
+    
+    conn = sqlite3.connect('crm.db')
+    cursor = conn.cursor()
+    
+    if nova_senha: 
+        # Se preencheu a nova senha, atualizamos ela também
+        # Lembre-se de aplicar o mesmo hash (ex: werkzeug.security) que você usa no cadastro!
+        cursor.execute("""
+            UPDATE usuarios 
+            SET email = ?, telefone = ?, senha = ?, percentual_comissao = ?, 
+                cep_atuacao = ?, horario_inicio = ?, horario_fim = ?
+            WHERE id = ?
+        """, (email, telefone, nova_senha, comissao, cep, inicio, fim, session['usuario_id']))
+    else: 
+        # Mantém a senha atual intacta
+        cursor.execute("""
+            UPDATE usuarios 
+            SET email = ?, telefone = ?, percentual_comissao = ?, 
+                cep_atuacao = ?, horario_inicio = ?, horario_fim = ?
+            WHERE id = ?
+        """, (email, telefone, comissao, cep, inicio, fim, session['usuario_id']))
+        
+    conn.commit()
+    conn.close()
+    
+    return redirect('/home')
+    
 @app.route('/salvar_feedback', methods=['POST'])
 def salvar_feedback():
     if 'usuario_id' not in session: return redirect(url_for('login'))
     
-    # MANTIDO: Captura de variáveis originais
     evento_id = request.form.get('evento_id')
     lead_id = request.form.get('lead_id')
     observacoes = request.form.get('observacoes')
     acao = request.form.get('acao') 
-    
-    # NOVO: Captura o novo status enviado pelo HTML
     novo_status_lead = request.form.get('novo_status_lead') 
+    
+    produtos_selecionados = request.form.getlist('produtos_comprados')
     
     try:
         conn = conectar_banco(); cur = conn.cursor(); prefixo = ""
         
-        # ==========================================
-        # NOVO: ATUALIZA O STATUS DO LEAD NA BASE
-        # ==========================================
+        # ATUALIZA O STATUS DO LEAD NA BASE
         if novo_status_lead and lead_id and lead_id != "None":
             cur.execute("UPDATE leads SET status = %s WHERE id = %s AND usuario_id = %s", (novo_status_lead, lead_id, session['usuario_id']))
+            
+            # LÓGICA FINANCEIRA DA VENDA
+            if novo_status_lead == 'Fechado' and acao == 'concluir' and produtos_selecionados:
+                for prod_id in produtos_selecionados:
+                    cur.execute("SELECT preco FROM produtos WHERE id = %s AND usuario_id = %s", (prod_id, session['usuario_id']))
+                    resultado_produto = cur.fetchone()
+                    
+                    if resultado_produto:
+                        preco_unitario = resultado_produto[0]
+                        cur.execute("""
+                            INSERT INTO vendas (usuario_id, lead_id, produto_id, quantidade, valor_unitario, valor_total) 
+                            VALUES (%s, %s, %s, 1, %s, %s)
+                        """, (session['usuario_id'], lead_id, prod_id, preco_unitario, preco_unitario))
 
-        # ==========================================
-        # MANTIDO: LÓGICA EXISTENTE DA AGENDA E NOTAS
-        # ==========================================
+        # LÓGICA EXISTENTE DA AGENDA E NOTAS
         if acao == 'excluir': 
             cur.execute("DELETE FROM agenda WHERE id = %s AND usuario_id = %s", (evento_id, session['usuario_id']))
             prefixo = "[Cancelado/Excluído]"
@@ -158,15 +262,12 @@ def base_leads():
     try:
         conn = conectar_banco(); cur = conn.cursor()
         
-        # Pega Token do Vendedor
         cur.execute("SELECT token_publico FROM usuarios WHERE id = %s", (session['usuario_id'],))
         token_publico = cur.fetchone()[0]
         
-        # Pega Produtos Cadastrados
-        cur.execute("SELECT id, nome, descricao FROM produtos WHERE usuario_id = %s ORDER BY nome ASC", (session['usuario_id'],))
-        produtos = [{"id": p[0], "nome": p[1], "desc": p[2]} for p in cur.fetchall()]
+        cur.execute("SELECT id, nome, descricao, preco FROM produtos WHERE usuario_id = %s ORDER BY nome ASC", (session['usuario_id'],))
+        produtos = [{"id": p[0], "nome": p[1], "desc": p[2], "preco": float(p[3]) if p[3] else 0.0} for p in cur.fetchall()]
         
-        # Pega Leads
         cur.execute("SELECT id, nome, empresa, interesse, telefone, email, endereco, status FROM leads WHERE usuario_id = %s ORDER BY id DESC", (session['usuario_id'],))
         for l in cur.fetchall():
             lead_id = l[0]
@@ -182,18 +283,24 @@ def base_leads():
 def captura():
     if 'usuario_id' not in session:
         return redirect(url_for('login'))
-    
-    # Renderiza a página de captura para o usuário logado
     return render_template('captura.html')
 
 @app.route('/cadastrar_lead', methods=['POST'])
 def cadastrar_lead():
     if 'usuario_id' not in session: return redirect(url_for('login'))
     nome = request.form.get('nome'); empresa = request.form.get('empresa'); interesse = request.form.get('interesse')
-    telefone = request.form.get('telefone'); email = request.form.get('email'); endereco = request.form.get('endereco'); status = request.form.get('status')
+    telefone = request.form.get('telefone'); email = request.form.get('email'); status = request.form.get('status')
+    endereco = request.form.get('endereco') 
+    rua = request.form.get('rua'); numero = request.form.get('numero')
+    bairro = request.form.get('bairro'); cidade = request.form.get('cidade'); cep = request.form.get('cep')
+    
     try:
         conn = conectar_banco(); cur = conn.cursor()
-        cur.execute("INSERT INTO leads (usuario_id, nome, empresa, interesse, telefone, email, endereco, status) VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id", (session['usuario_id'], nome, empresa, interesse, telefone, email, endereco, status))
+        cur.execute("""
+            INSERT INTO leads 
+            (usuario_id, nome, empresa, interesse, telefone, email, endereco, status, rua, numero, bairro, cidade, cep) 
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
+        """, (session['usuario_id'], nome, empresa, interesse, telefone, email, endereco, status, rua, numero, bairro, cidade, cep))
         conn.commit(); cur.close(); conn.close()
     except Exception as e: print(e)
     return redirect(url_for('base_leads'))
@@ -202,10 +309,19 @@ def cadastrar_lead():
 def editar_lead():
     if 'usuario_id' not in session: return redirect(url_for('login'))
     lead_id = request.form.get('lead_id'); nome = request.form.get('nome'); empresa = request.form.get('empresa'); interesse = request.form.get('interesse')
-    telefone = request.form.get('telefone'); email = request.form.get('email'); endereco = request.form.get('endereco'); status = request.form.get('status')
+    telefone = request.form.get('telefone'); email = request.form.get('email'); status = request.form.get('status')
+    endereco = request.form.get('endereco')
+    rua = request.form.get('rua'); numero = request.form.get('numero')
+    bairro = request.form.get('bairro'); cidade = request.form.get('cidade'); cep = request.form.get('cep')
+    
     try:
         conn = conectar_banco(); cur = conn.cursor()
-        cur.execute("UPDATE leads SET nome=%s, empresa=%s, interesse=%s, telefone=%s, email=%s, endereco=%s, status=%s WHERE id=%s AND usuario_id=%s", (nome, empresa, interesse, telefone, email, endereco, status, lead_id, session['usuario_id']))
+        cur.execute("""
+            UPDATE leads 
+            SET nome=%s, empresa=%s, interesse=%s, telefone=%s, email=%s, endereco=%s, status=%s, 
+                rua=%s, numero=%s, bairro=%s, cidade=%s, cep=%s 
+            WHERE id=%s AND usuario_id=%s
+        """, (nome, empresa, interesse, telefone, email, endereco, status, rua, numero, bairro, cidade, cep, lead_id, session['usuario_id']))
         conn.commit(); cur.close(); conn.close()
     except Exception as e: print(e)
     return redirect(url_for('base_leads'))
@@ -226,11 +342,13 @@ def adicionar_nota():
 def adicionar_produto():
     if 'usuario_id' not in session: return redirect(url_for('login'))
     nome = request.form.get('nome'); descricao = request.form.get('descricao')
+    preco = request.form.get('preco', 0.0) 
+    
     try:
         conn = conectar_banco(); cur = conn.cursor()
         cur.execute("SELECT COUNT(*) FROM produtos WHERE usuario_id = %s", (session['usuario_id'],))
         if cur.fetchone()[0] >= 20: return "<h1>Limite de 20 produtos atingido. Exclua algum para adicionar novos.</h1>", 400
-        cur.execute("INSERT INTO produtos (usuario_id, nome, descricao) VALUES (%s, %s, %s)", (session['usuario_id'], nome, descricao))
+        cur.execute("INSERT INTO produtos (usuario_id, nome, descricao, preco) VALUES (%s, %s, %s, %s)", (session['usuario_id'], nome, descricao, preco))
         conn.commit(); cur.close(); conn.close()
     except Exception as e: print(e)
     return redirect(url_for('base_leads'))
@@ -253,13 +371,11 @@ def deletar_produto():
 def captura_publica(token):
     try:
         conn = conectar_banco(); cur = conn.cursor()
-        # Acha o vendedor dono do link
         cur.execute("SELECT id FROM usuarios WHERE token_publico = %s", (token,))
         vendedor = cur.fetchone()
         if not vendedor: return "<h1>Link inválido ou expirado.</h1>", 404
         
         vendedor_id = vendedor[0]
-        # Pega os produtos desse vendedor para exibir no formulário
         cur.execute("SELECT nome FROM produtos WHERE usuario_id = %s ORDER BY nome ASC", (vendedor_id,))
         produtos = [p[0] for p in cur.fetchall()]
         cur.close(); conn.close()
@@ -276,12 +392,11 @@ def captura_submit(token):
         
         nome = request.form.get('nome'); empresa = request.form.get('empresa'); interesse = request.form.get('interesse')
         telefone = request.form.get('telefone'); email = request.form.get('email'); endereco = request.form.get('endereco')
-        status = 'Qualificação' # Entra no funil automático
+        status = 'Qualificação' 
         
         cur.execute("INSERT INTO leads (usuario_id, nome, empresa, interesse, telefone, email, endereco, status) VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id", (vendedor[0], nome, empresa, interesse, telefone, email, endereco, status))
         novo_lead_id = cur.fetchone()[0]
         
-        # Insere a nota inicial automática
         cur.execute("INSERT INTO notas_leads (lead_id, nota) VALUES (%s, %s)", (novo_lead_id, "[Captura Pública] Lead auto-cadastrado via Link online."))
         
         conn.commit(); cur.close(); conn.close()

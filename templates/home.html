@@ -4,17 +4,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - CRM IA Soluções</title>
+    <!-- Adicionando Chart.js para o Gráfico -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #000000; color: #e0e0e0; margin: 0; padding: 0; display: flex; justify-content: center; }
         .app-container { width: 100%; max-width: 480px; background-color: #121212; min-height: 100vh; position: relative; padding-bottom: 80px; box-sizing: border-box; }
+        
         header { padding: 25px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; }
         .header-info h1 { color: #ff8c00; font-size: 1.1em; margin: 0; text-transform: uppercase; letter-spacing: 2px; }
         .header-info p { margin: 5px 0 0 0; color: #e0e0e0; font-size: 1.4em; font-weight: bold; }
+        
+        /* Ações do Canto Superior Direito */
+        .header-actions { display: flex; gap: 15px; align-items: center; }
+        .btn-header { background: none; border: none; font-size: 1.4em; cursor: pointer; transition: transform 0.2s; padding: 0; display: inline-block; }
+        .btn-header:hover { transform: scale(1.1); }
         .logout-btn { color: #666; text-decoration: none; font-size: 1.2em; }
         
+        /* PAINEL FINANCEIRO RETRÁTIL */
+        #painelFinanceiro { display: none; background-color: #1a1a1a; padding: 20px; border-bottom: 2px solid #ff8c00; box-shadow: 0 4px 10px rgba(0,0,0,0.5); animation: slideDown 0.3s ease-out; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .finance-dashboard { display: flex; gap: 10px; margin-bottom: 15px; }
+        .fin-card { flex: 1; background-color: #121212; border-radius: 6px; padding: 15px; border-left: 4px solid #2ecc71; box-shadow: inset 0 0 5px rgba(0,0,0,0.5); }
+        .fin-card.comissao { border-left-color: #3498db; }
+
         .content { padding: 20px; }
         
-        .pipeline-dashboard { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; }
+        .pipeline-dashboard { display: flex; gap: 10px; margin-bottom: 25px; overflow-x: auto; padding-bottom: 5px; }
         .pipe-card { flex: 1; min-width: 80px; background-color: #1e1e1e; border-radius: 6px; padding: 15px 10px; text-align: center; border-top: 3px solid #ff8c00; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
         .pipe-card span { display: block; font-size: 0.70em; color: #aaa; text-transform: uppercase; margin-bottom: 5px; font-weight: bold;}
         .pipe-card strong { font-size: 1.5em; color: #fff; }
@@ -67,12 +83,44 @@
 </head>
 <body>
     <div class="app-container">
+        <!-- CABEÇALHO ATUALIZADO COM O BOTÃO DE CONFIGURAÇÕES -->
         <header>
             <div class="header-info"><h1>CRM IA Soluções</h1><p>Pipeline</p></div>
-            <a href="/logout" class="logout-btn" title="Sair">🚪</a>
+            <div class="header-actions">
+                <a href="/config" class="btn-header" style="text-decoration: none;" title="Configurações">⚙️</a>
+                <button class="btn-header" onclick="toggleFinanceiro()" title="Painel Financeiro">📊</button>
+                <a href="/logout" class="logout-btn" title="Sair">🚪</a>
+            </div>
         </header>
+
+        <!-- NOVO PAINEL FINANCEIRO RETRÁTIL (INICIA OCULTO) -->
+        <div id="painelFinanceiro">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h2 style="color: #fff; font-size: 1em; margin: 0; text-transform: uppercase;">Resumo Financeiro</h2>
+                <button onclick="toggleFinanceiro()" style="background: none; border: none; color: #aaa; cursor: pointer; font-size: 1.5em; line-height: 1;">&times;</button>
+            </div>
+            
+            <div class="finance-dashboard">
+                <div class="fin-card">
+                    <span style="color: #aaa; font-size: 0.75em; text-transform: uppercase; font-weight: bold;">Faturamento Total</span>
+                    <strong style="color: #2ecc71; font-size: 1.3em; display: block; margin-top: 5px;">R$ {{ "%.2f"|format(faturamento) }}</strong>
+                </div>
+                <div class="fin-card comissao">
+                    <span style="color: #aaa; font-size: 0.75em; text-transform: uppercase; font-weight: bold;">Comissões (10%)</span>
+                    <strong style="color: #3498db; font-size: 1.3em; display: block; margin-top: 5px;">R$ {{ "%.2f"|format(comissao) }}</strong>
+                </div>
+            </div>
+
+            <div style="background-color: #121212; border-radius: 6px; padding: 15px; border: 1px solid #333;">
+                <span style="font-weight: bold; font-size: 0.9em; color: #ffffff; text-transform: uppercase; margin-bottom: 10px; display: block;">Vendas por Produto</span>
+                <div style="position: relative; height: 180px; width: 100%;">
+                    <canvas id="graficoVendas"></canvas>
+                </div>
+            </div>
+        </div>
         
         <div class="content">
+            <!-- Pipeline de Vendas Original -->
             <div class="pipeline-dashboard">
                 <div class="pipe-card"><span>Qualificação</span><strong>{{ pipeline.get('Qualificação', 0) }}</strong></div>
                 <div class="pipe-card"><span>Negociação</span><strong>{{ pipeline.get('Negociação', 0) }}</strong></div>
@@ -96,6 +144,7 @@
         <div class="bottom-nav">
             <a href="/home" class="nav-item active">Hoje</a>
             <a href="/base_leads" class="nav-item">Leads</a>
+            <a href="/captura" class="nav-item">Captura</a>
         </div>
     </div>
 
@@ -118,6 +167,8 @@
                     
                     <div class="form-group" id="group-lead">
                         <label>Selecionar Lead</label>
+                        <input type="text" id="busca-lead" placeholder="🔍 Buscar por nome ou empresa..." onkeyup="filtrarLeads()" style="margin-bottom: 8px;">
+                        
                         <select name="titulo_compromisso" id="select-lead" required onchange="verificarNovoLead(this)">
                             <option value="" disabled selected>Selecione um cliente da base...</option>
                             {% for lead in leads %}
@@ -178,7 +229,17 @@
                     </select>
                 </div>
 
-                <div class="form-group">
+                <div id="secao_produtos_fechamento" class="form-group" style="display: none; padding: 15px; border: 1px solid #2ecc71; border-radius: 4px; background-color: #1a251c; margin-top: 10px;">
+                    <label style="color: #2ecc71; font-weight: bold;">✅ Parabéns pela venda! Informe os produtos:</label>
+                    <select multiple name="produtos_comprados" id="produtos_comprados" style="height: 100px; margin-top: 10px;">
+                        {% for produto in produtos %}
+                        <option value="{{ produto.id }}">{{ produto.nome }} - R$ {{ produto.preco }}</option>
+                        {% endfor %}
+                    </select>
+                    <span style="font-size: 0.75em; color: #aaa; margin-top: 5px;">Segure CTRL (ou CMD) para selecionar múltiplos.</span>
+                </div>
+
+                <div class="form-group" style="margin-top: 15px;">
                     <label>Como foi? (Obrigatório)</label>
                     <textarea name="observacoes" id="input-observacoes" placeholder="Ex: Cliente achou caro, pediu para retornar..." required></textarea>
                 </div>
@@ -193,7 +254,58 @@
         </div>
     </div>
 
+    <!-- SCRIPTS -->
     <script>
+        // NOVO: Função para exibir ou ocultar o painel financeiro superior
+        let graficoInstanciado = null;
+        
+        function toggleFinanceiro() {
+            const painel = document.getElementById('painelFinanceiro');
+            if (painel.style.display === 'none' || painel.style.display === '') {
+                painel.style.display = 'block';
+                // Instancia o gráfico apenas na primeira vez que o painel for aberto
+                if (!graficoInstanciado) {
+                    renderizarGrafico();
+                }
+            } else {
+                painel.style.display = 'none';
+            }
+        }
+
+        // RENDERIZAÇÃO DO GRÁFICO CHART.JS (Agora é chamado na primeira abertura do painel)
+        function renderizarGrafico() {
+            const ctx = document.getElementById('graficoVendas').getContext('2d');
+            const labelsGrafico = JSON.parse('{{ graf_labels | safe }}');
+            const dadosGrafico = JSON.parse('{{ graf_valores | safe }}');
+
+            if (labelsGrafico.length > 0) {
+                graficoInstanciado = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labelsGrafico,
+                        datasets: [{
+                            data: dadosGrafico,
+                            backgroundColor: ['#ff8c00', '#2ecc71', '#3498db', '#9b59b6', '#f1c40f', '#e74c3c'],
+                            borderWidth: 0,
+                            hoverOffset: 5
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'right', labels: { color: '#e0e0e0', font: { size: 11 } } },
+                            tooltip: { callbacks: { label: function(context) { return ' R$ ' + context.parsed.toFixed(2); } } }
+                        }
+                    }
+                });
+            } else {
+                document.getElementById('graficoVendas').parentElement.innerHTML = '<p style="color: #666; font-size: 0.9em; text-align: center; margin-top: 80px;">Nenhuma venda registrada ainda.</p>';
+                graficoInstanciado = true; // Impede tentativas repetidas de criar o gráfico vazio
+            }
+        }
+
+        // SCRIPTS DA AGENDA (MANTIDOS INTACTOS)
         const eventosBanco = JSON.parse('{{ eventos_json | safe if eventos_json else "[]" }}');
         let dataAtual = new Date(); let mesAtual = dataAtual.getMonth(); let anoAtual = dataAtual.getFullYear();
         const mesesNomes = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -256,6 +368,8 @@
             document.getElementById('select-lead').setAttribute('required', 'true');
             document.getElementById('inputs-reagendamento').innerHTML = '';
             document.getElementById('btn-confirmar-agenda').innerText = 'Salvar Agendamento';
+            document.getElementById('busca-lead').value = ''; 
+            filtrarLeads(); 
             document.getElementById('modalAgenda').style.display = 'flex'; 
             renderizarCalendario(); 
         }
@@ -300,7 +414,42 @@
             
             document.getElementById('input-observacoes').value = ''; 
             document.getElementById('input-status-lead').value = ''; 
+
+            document.getElementById('secao_produtos_fechamento').style.display = 'none';
+            document.getElementById('produtos_comprados').removeAttribute('required');
         }
+        
+        function filtrarLeads() {
+            let input = document.getElementById('busca-lead').value.toLowerCase();
+            let select = document.getElementById('select-lead');
+            let options = select.getElementsByTagName('option');
+            
+            for (let i = 0; i < options.length; i++) {
+                if (options[i].disabled || options[i].value === 'NOVO_LEAD') {
+                    continue;
+                }
+                let textoOption = options[i].text.toLowerCase();
+                if (textoOption.includes(input)) {
+                    options[i].style.display = "";
+                } else {
+                    options[i].style.display = "none";
+                }
+            }
+        }
+
+        document.getElementById('input-status-lead').addEventListener('change', function() {
+            const secaoProdutos = document.getElementById('secao_produtos_fechamento');
+            const selectProdutos = document.getElementById('produtos_comprados');
+            
+            if(this.value === 'Fechado') {
+                secaoProdutos.style.display = 'block';
+                selectProdutos.setAttribute('required', 'required');
+            } else {
+                secaoProdutos.style.display = 'none';
+                selectProdutos.removeAttribute('required');
+                selectProdutos.selectedIndex = -1; 
+            }
+        });
 
         function fecharModais() { document.getElementById('modalAgenda').style.display = 'none'; document.getElementById('modalFeedback').style.display = 'none'; }
         function validarFormAgenda() { if(!document.getElementById('input-data').value) { alert('⚠️ Clique em um dia no calendário!'); return false; } return true; }
