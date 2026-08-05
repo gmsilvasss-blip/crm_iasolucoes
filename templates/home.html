@@ -96,6 +96,7 @@
         <div class="bottom-nav">
             <a href="/home" class="nav-item active">Hoje</a>
             <a href="/base_leads" class="nav-item">Leads</a>
+            <a href="/captura" class="nav-item">Captura</a>
         </div>
     </div>
 
@@ -118,6 +119,9 @@
                     
                     <div class="form-group" id="group-lead">
                         <label>Selecionar Lead</label>
+                        <!-- NOVO: Campo de busca para filtrar a base de leads cheia -->
+                        <input type="text" id="busca-lead" placeholder="🔍 Buscar por nome ou empresa..." onkeyup="filtrarLeads()" style="margin-bottom: 8px;">
+                        
                         <select name="titulo_compromisso" id="select-lead" required onchange="verificarNovoLead(this)">
                             <option value="" disabled selected>Selecione um cliente da base...</option>
                             {% for lead in leads %}
@@ -167,6 +171,7 @@
                 <input type="hidden" name="evento_id" id="input-evento-id">
                 <input type="hidden" name="lead_id" id="input-lead-id">
                 
+                <!-- NOVO: Status Obrigatório -->
                 <div class="form-group">
                     <label>Status do Lead (Obrigatório)</label>
                     <select name="novo_status_lead" id="input-status-lead" required>
@@ -193,6 +198,7 @@
 
                 <div class="form-group" style="margin-top: 15px;">
                     <label>Como foi? (Obrigatório)</label>
+                    <!-- A caixa agora vem sempre vazia, sem carregar a obs antiga -->
                     <textarea name="observacoes" id="input-observacoes" placeholder="Ex: Cliente achou caro, pediu para retornar..." required></textarea>
                 </div>
                 
@@ -269,6 +275,8 @@
             document.getElementById('select-lead').setAttribute('required', 'true');
             document.getElementById('inputs-reagendamento').innerHTML = '';
             document.getElementById('btn-confirmar-agenda').innerText = 'Salvar Agendamento';
+            document.getElementById('busca-lead').value = ''; // Limpa a busca ao abrir
+            filtrarLeads(); // Reseta o filtro
             document.getElementById('modalAgenda').style.display = 'flex'; 
             renderizarCalendario(); 
         }
@@ -311,16 +319,34 @@
             document.getElementById('input-lead-id').value = lead_id; 
             document.getElementById('feedback-titulo').innerText = titulo;
             
+            // Alterado para sempre abrir com a caixa de texto vazia
             document.getElementById('input-observacoes').value = ''; 
-<<<<<<< HEAD
             document.getElementById('input-status-lead').value = ''; // Zera a seleção do status
 
             // NOVAS LINHAS: Oculta a área de produtos e remove obrigatoriedade ao reabrir modal
             document.getElementById('secao_produtos_fechamento').style.display = 'none';
             document.getElementById('produtos_comprados').removeAttribute('required');
-=======
-            document.getElementById('input-status-lead').value = ''; 
->>>>>>> d66bf30672e64494196969efcdfc3b094cf0fc1b
+        }
+        
+        // NOVO: Função para filtrar os leads na hora do agendamento
+        function filtrarLeads() {
+            let input = document.getElementById('busca-lead').value.toLowerCase();
+            let select = document.getElementById('select-lead');
+            let options = select.getElementsByTagName('option');
+            
+            for (let i = 0; i < options.length; i++) {
+                // Deixa o placeholder e a opção de Novo Lead sempre visíveis
+                if (options[i].disabled || options[i].value === 'NOVO_LEAD') {
+                    continue;
+                }
+                
+                let textoOption = options[i].text.toLowerCase();
+                if (textoOption.includes(input)) {
+                    options[i].style.display = "";
+                } else {
+                    options[i].style.display = "none";
+                }
+            }
         }
 
         // NOVO: Monitora a mudança de status para exibir os produtos no fechamento
