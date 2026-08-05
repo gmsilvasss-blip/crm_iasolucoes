@@ -81,8 +81,8 @@
                     <p><strong>E-mail:</strong> {{ lead.email }}</p>
                 </div>
                 <div class="acoes-lead">
-                    <!-- A edição abrirá um modal pré-preenchido via JavaScript -->
-                    <button onclick="prepararEdicao({{ lead.id }}, '{{ lead.nome }}', '{{ lead.empresa }}', '{{ lead.interesse }}', '{{ lead.telefone }}', '{{ lead.email }}', '{{ lead.endereco }}', '{{ lead.status }}')">Editar</button>
+                    <!-- A edição atualizada para suportar os novos campos separados -->
+                    <button onclick="prepararEdicao({{ lead.id }}, '{{ lead.nome }}', '{{ lead.empresa }}', '{{ lead.interesse }}', '{{ lead.telefone }}', '{{ lead.email }}', '{{ lead.cep }}', '{{ lead.rua }}', '{{ lead.numero }}', '{{ lead.bairro }}', '{{ lead.cidade }}', '{{ lead.status }}')">Editar</button>
                     <button onclick="abrirModal('modalNotas{{ lead.id }}')">Histórico</button>
                 </div>
             </div>
@@ -105,7 +105,6 @@
         <div class="bottom-nav">
             <a href="/home" class="nav-item">Hoje</a>
             <a href="/base_leads" class="nav-item active">Leads</a>
-            <!-- LINK CORRIGIDO PARA A ROTA CAPTURA -->
             <a href="/captura" class="nav-item">Captura</a>
         </div>
     </div>
@@ -126,7 +125,33 @@
                 </div>
                 
                 <div class="form-group"><label>E-mail</label><input type="email" name="email" id="lead_email"></div>
-                <div class="form-group"><label>Endereço Completo</label><input type="text" name="endereco" id="lead_endereco"></div>
+                
+                <!-- INÍCIO: Novos campos granulares de endereço -->
+                <div class="form-group">
+                    <label>CEP</label>
+                    <input type="text" name="cep" id="cep" placeholder="00000-000">
+                </div>
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <div style="flex: 2; display: flex; flex-direction: column;">
+                        <label style="color: #aaa; font-size: 0.85em; margin-bottom: 5px;">Rua</label>
+                        <input type="text" name="rua" id="rua" style="background-color: #121212; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 4px;" required>
+                    </div>
+                    <div style="flex: 1; display: flex; flex-direction: column;">
+                        <label style="color: #aaa; font-size: 0.85em; margin-bottom: 5px;">Nº</label>
+                        <input type="text" name="numero" id="numero" style="background-color: #121212; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 4px;" required>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <div style="flex: 1; display: flex; flex-direction: column;">
+                        <label style="color: #aaa; font-size: 0.85em; margin-bottom: 5px;">Bairro</label>
+                        <input type="text" name="bairro" id="bairro" style="background-color: #121212; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 4px;" required>
+                    </div>
+                    <div style="flex: 1; display: flex; flex-direction: column;">
+                        <label style="color: #aaa; font-size: 0.85em; margin-bottom: 5px;">Cidade</label>
+                        <input type="text" name="cidade" id="cidade" style="background-color: #121212; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 4px;" required>
+                    </div>
+                </div>
+                <!-- FIM: Novos campos granulares de endereço -->
                 
                 <div class="form-group">
                     <label>Produto de Interesse</label>
@@ -159,13 +184,15 @@
             <form action="/adicionar_produto" method="POST" style="margin-bottom: 20px;">
                 <div class="form-group"><input type="text" name="nome" placeholder="Nome do Produto" required></div>
                 <div class="form-group"><input type="text" name="descricao" placeholder="Breve descrição"></div>
+                <!-- Considerando o novo schema que inclui 'preco' -->
+                <div class="form-group"><input type="number" step="0.01" name="preco" placeholder="Preço (Ex: 199.90)" required></div>
                 <button type="submit" class="btn-acao">Adicionar Produto</button>
             </form>
             
             <div style="max-height: 200px; overflow-y: auto;">
                 {% for p in produtos %}
                 <div class="produto-item">
-                    <span><strong>{{ p.nome }}</strong></span>
+                    <span><strong>{{ p.nome }}</strong> (R$ {{ p.preco }})</span>
                     <form action="/deletar_produto" method="POST" style="margin:0;"><input type="hidden" name="produto_id" value="{{ p.id }}"><button type="submit" class="btn-del">❌</button></form>
                 </div>
                 {% endfor %}
@@ -178,7 +205,7 @@
         function abrirModal(id) { document.getElementById(id).style.display = 'flex'; }
         function fecharModais() { document.querySelectorAll('.modal-overlay').forEach(el => el.style.display = 'none'); }
         
-        function prepararEdicao(id, nome, empresa, interesse, telefone, email, endereco, status) {
+        function prepararEdicao(id, nome, empresa, interesse, telefone, email, cep, rua, numero, bairro, cidade, status) {
             document.getElementById('formLead').action = '/editar_lead';
             document.getElementById('tituloModalLead').innerText = 'Editar Lead';
             document.getElementById('btnSalvarLead').innerText = 'Salvar Alterações';
@@ -188,7 +215,14 @@
             document.getElementById('lead_interesse').value = interesse;
             document.getElementById('lead_telefone').value = telefone;
             document.getElementById('lead_email').value = email;
-            document.getElementById('lead_endereco').value = endereco;
+            
+            // Popula os novos campos
+            document.getElementById('cep').value = cep !== 'None' ? cep : '';
+            document.getElementById('rua').value = rua !== 'None' ? rua : '';
+            document.getElementById('numero').value = numero !== 'None' ? numero : '';
+            document.getElementById('bairro').value = bairro !== 'None' ? bairro : '';
+            document.getElementById('cidade').value = cidade !== 'None' ? cidade : '';
+            
             document.getElementById('lead_status').value = status;
             abrirModal('modalLead');
         }
@@ -202,7 +236,7 @@
             });
         }
 
-        // NOVO SCRIPT: FUNÇÃO DA LUPA DE BUSCA
+        // FUNÇÃO DA LUPA DE BUSCA MANTIDA
         function filtrarBaseLeads() {
             let input = document.getElementById('busca-base-leads').value.toLowerCase();
             let cards = document.querySelectorAll('.lead-card');

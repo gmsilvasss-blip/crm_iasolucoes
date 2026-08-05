@@ -178,7 +178,20 @@
                     </select>
                 </div>
 
-                <div class="form-group">
+                <!-- INÍCIO: Seção dinâmica para Status Fechado (Oculta por padrão) -->
+                <div id="secao_produtos_fechamento" class="form-group" style="display: none; padding: 15px; border: 1px solid #2ecc71; border-radius: 4px; background-color: #1a251c; margin-top: 10px;">
+                    <label style="color: #2ecc71; font-weight: bold;">✅ Parabéns pela venda! Informe os produtos:</label>
+                    <select multiple name="produtos_comprados" id="produtos_comprados" style="height: 100px; margin-top: 10px;">
+                        <!-- Aqui usamos a variável 'produtos' assumindo que ela é injetada no render_template da Home também -->
+                        {% for produto in produtos %}
+                        <option value="{{ produto.id }}">{{ produto.nome }} - R$ {{ produto.preco }}</option>
+                        {% endfor %}
+                    </select>
+                    <span style="font-size: 0.75em; color: #aaa; margin-top: 5px;">Segure CTRL (ou CMD) para selecionar múltiplos.</span>
+                </div>
+                <!-- FIM: Seção dinâmica para Status Fechado -->
+
+                <div class="form-group" style="margin-top: 15px;">
                     <label>Como foi? (Obrigatório)</label>
                     <textarea name="observacoes" id="input-observacoes" placeholder="Ex: Cliente achou caro, pediu para retornar..." required></textarea>
                 </div>
@@ -299,8 +312,31 @@
             document.getElementById('feedback-titulo').innerText = titulo;
             
             document.getElementById('input-observacoes').value = ''; 
+<<<<<<< HEAD
+            document.getElementById('input-status-lead').value = ''; // Zera a seleção do status
+
+            // NOVAS LINHAS: Oculta a área de produtos e remove obrigatoriedade ao reabrir modal
+            document.getElementById('secao_produtos_fechamento').style.display = 'none';
+            document.getElementById('produtos_comprados').removeAttribute('required');
+=======
             document.getElementById('input-status-lead').value = ''; 
+>>>>>>> d66bf30672e64494196969efcdfc3b094cf0fc1b
         }
+
+        // NOVO: Monitora a mudança de status para exibir os produtos no fechamento
+        document.getElementById('input-status-lead').addEventListener('change', function() {
+            const secaoProdutos = document.getElementById('secao_produtos_fechamento');
+            const selectProdutos = document.getElementById('produtos_comprados');
+            
+            if(this.value === 'Fechado') {
+                secaoProdutos.style.display = 'block';
+                selectProdutos.setAttribute('required', 'required');
+            } else {
+                secaoProdutos.style.display = 'none';
+                selectProdutos.removeAttribute('required');
+                selectProdutos.selectedIndex = -1; // Limpa as seleções anteriores
+            }
+        });
 
         function fecharModais() { document.getElementById('modalAgenda').style.display = 'none'; document.getElementById('modalFeedback').style.display = 'none'; }
         function validarFormAgenda() { if(!document.getElementById('input-data').value) { alert('⚠️ Clique em um dia no calendário!'); return false; } return true; }
