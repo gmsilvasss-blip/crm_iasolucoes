@@ -149,12 +149,12 @@ def config():
     if 'usuario_id' not in session:
         return redirect('/login')
     
-    conn = sqlite3.connect('crm.db')
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
+    # Substituindo sqlite3 por psycopg2
+    conn = conectar_banco()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     
     # Puxa os dados atuais para preencher os campos no HTML
-    cursor.execute("SELECT * FROM usuarios WHERE id = ?", (session['usuario_id'],))
+    cursor.execute("SELECT * FROM usuarios WHERE id = %s", (session['usuario_id'],))
     usuario = cursor.fetchone()
     conn.close()
     
@@ -173,25 +173,26 @@ def salvar_configuracoes():
     inicio = request.form.get('horario_inicio')
     fim = request.form.get('horario_fim')
     
-    conn = sqlite3.connect('crm.db')
+    # Substituindo sqlite3 por psycopg2
+    conn = conectar_banco()
     cursor = conn.cursor()
     
     if nova_senha: 
-        # Se preencheu a nova senha, atualizamos ela também
-        # Lembre-se de aplicar o mesmo hash (ex: werkzeug.security) que você usa no cadastro!
+        # Se preencheu a nova senha, geramos o hash com werkzeug
+        senha_hash = generate_password_hash(nova_senha)
         cursor.execute("""
             UPDATE usuarios 
-            SET email = ?, telefone = ?, senha = ?, percentual_comissao = ?, 
-                cep_atuacao = ?, horario_inicio = ?, horario_fim = ?
-            WHERE id = ?
-        """, (email, telefone, nova_senha, comissao, cep, inicio, fim, session['usuario_id']))
+            SET email = %s, telefone = %s, senha_hash = %s, percentual_comissao = %s, 
+                cep_atuacao = %s, horario_inicio = %s, horario_fim = %s
+            WHERE id = %s
+        """, (email, telefone, senha_hash, comissao, cep, inicio, fim, session['usuario_id']))
     else: 
         # Mantém a senha atual intacta
         cursor.execute("""
             UPDATE usuarios 
-            SET email = ?, telefone = ?, percentual_comissao = ?, 
-                cep_atuacao = ?, horario_inicio = ?, horario_fim = ?
-            WHERE id = ?
+            SET email = %s, telefone = %s, percentual_comissao = %s, 
+                cep_atuacao = %s, horario_inicio = %s, horario_fim = %s
+            WHERE id = %s
         """, (email, telefone, comissao, cep, inicio, fim, session['usuario_id']))
         
     conn.commit()
