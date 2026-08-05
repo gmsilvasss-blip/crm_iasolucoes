@@ -97,11 +97,19 @@ def home():
         # ==========================================
         # INÍCIO FASE 4: CÁLCULOS FINANCEIROS
         # ==========================================
+        # Busca o percentual de comissão salvo no banco
+        cur.execute("SELECT percentual_comissao FROM usuarios WHERE id = %s", (session['usuario_id'],))
+        resultado_comissao = cur.fetchone()
+        # Se não houver valor configurado, usa 10 como padrão
+        percentual_comissao = float(resultado_comissao[0]) if resultado_comissao and resultado_comissao[0] else 10.0
+
         # 1. Faturamento Total
         cur.execute("SELECT COALESCE(SUM(valor_total), 0) FROM vendas WHERE usuario_id = %s", (session['usuario_id'],))
         fat_res = cur.fetchone()
         faturamento_total = float(fat_res[0]) if fat_res else 0.0
-        comissao_total = faturamento_total * 0.10  # Calculando 10% de comissão
+        
+        # Calcula a comissão usando a variável dinâmica do banco
+        comissao_total = faturamento_total * (percentual_comissao / 100.0)
         
         # 2. Dados do Gráfico (Vendas por Produto)
         cur.execute("""
