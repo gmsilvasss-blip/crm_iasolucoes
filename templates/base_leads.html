@@ -201,6 +201,42 @@
         </div>
     </div>
 
+    <!-- NOVO MODAL: REGISTRAR FECHAMENTO (Para o Dashboard) -->
+    <div class="modal-overlay" id="modalFechamento">
+        <div class="modal-content" style="max-width: 400px;">
+            <h2 style="color: #2ecc71; font-size: 1.2em; margin-top:0; border-bottom: 1px solid #333; padding-bottom: 10px;">✅ Registrar Venda</h2>
+            <p style="color: #ccc; font-size: 0.9em; margin-bottom: 15px;">Para contabilizar no dashboard, informe os detalhes do fechamento.</p>
+            
+            <form action="/salvar_feedback" method="POST">
+                <!-- Enviamos evento_id como 0 ou vazio pois a venda vem da base de leads, e não da agenda -->
+                <input type="hidden" name="evento_id" value="0">
+                <input type="hidden" name="lead_id" id="input_id_lead_venda">
+                <input type="hidden" name="novo_status_lead" value="Fechado">
+                
+                <div class="form-group" style="padding: 15px; border: 1px solid #2ecc71; border-radius: 4px; background-color: #1a251c;">
+                    <label style="color: #2ecc71; font-weight: bold;">Produtos Vendidos:</label>
+                    <select multiple name="produtos_comprados" required style="height: 100px; margin-top: 10px; width: 100%; background-color: #121212; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 4px;">
+                        {% for p in produtos %}
+                        <option value="{{ p.id }}">{{ p.nome }} - R$ {{ p.preco }}</option>
+                        {% endfor %}
+                    </select>
+                    <span style="font-size: 0.75em; color: #aaa; margin-top: 5px; display: block;">Selecione todos os produtos vendidos.</span>
+                </div>
+
+                <div class="form-group" style="margin-top: 15px;">
+                    <label>Observações do Fechamento</label>
+                    <textarea name="observacoes" placeholder="Ex: Venda realizada com sucesso via WhatsApp..." required style="width: 100%; height: 80px; background-color: #121212; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 4px; resize: none; font-family: inherit; box-sizing: border-box;"></textarea>
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
+                    <button type="submit" name="acao" value="concluir" class="btn-acao" style="background-color: #2ecc71; color: white;">Confirmar Venda</button>
+                    <!-- Se cancelar, voltamos para o modal de edição do lead -->
+                    <button type="button" class="btn-cancelar" onclick="fecharModais(); abrirModal('modalLead')">Voltar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         function abrirModal(id) { document.getElementById(id).style.display = 'flex'; }
         function fecharModais() { document.querySelectorAll('.modal-overlay').forEach(el => el.style.display = 'none'); }
@@ -225,6 +261,24 @@
             
             document.getElementById('lead_status').value = status;
             abrirModal('modalLead');
+        }
+
+        // NOVA FUNÇÃO: Intercepta a mudança de status para "Fechado"
+        function verificarFechamento(status) {
+            if (status === 'Fechado') {
+                let idDoLead = document.getElementById('lead_id').value;
+                
+                // Trava de segurança para impedir a venda de um lead que ainda não existe no banco (Novo Lead)
+                if (!idDoLead) {
+                    alert("⚠️ Salve este novo lead primeiro antes de marcá-lo como 'Fechado' para contabilizar a venda.");
+                    document.getElementById('lead_status').value = 'Qualificação';
+                    return;
+                }
+                
+                fecharModais();
+                abrirModal('modalFechamento');
+                document.getElementById('input_id_lead_venda').value = idDoLead;
+            }
         }
 
         function copiarLinkCaptura(token) {
