@@ -163,7 +163,7 @@
 
                 <div class="form-group">
                     <label>Etapa de Venda (Status)</label>
-                    <select name="status" id="lead_status">
+                    <select name="status" id="lead_status" onchange="verificarFechamento(this.value)">
                         <option value="Qualificação">Qualificação</option>
                         <option value="Negociação">Negociação</option>
                         <option value="Fechado">Fechado</option>
