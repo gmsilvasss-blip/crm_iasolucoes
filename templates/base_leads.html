@@ -51,7 +51,8 @@
         </header>
         
         <div class="content">
-            <button class="btn-acao" onclick="abrirModal('modalLead')">+ Novo Lead</button>
+            <!-- Novo Lead agora chama a função que reseta o modal -->
+            <button class="btn-acao" onclick="prepararNovoLead()">+ Novo Lead</button>
             <button class="btn-acao btn-link" onclick="copiarLinkCaptura('{{ token }}')">🔗 Copiar Link de Captura</button>
             <button class="btn-acao" style="background-color: #333; color: #fff;" onclick="abrirModal('modalProdutos')">📦 Gerenciar Produtos</button>
 
@@ -115,6 +116,7 @@
             <h2 id="tituloModalLead" style="color:#ff8c00; font-size: 1.2em; margin-top:0;">Novo Lead</h2>
             <form id="formLead" action="/cadastrar_lead" method="POST">
                 <input type="hidden" id="lead_id" name="lead_id">
+                <input type="hidden" id="status_original"> <!-- Guarda o status que veio do banco -->
                 
                 <div class="form-group"><label>Nome</label><input type="text" name="nome" id="lead_nome" required></div>
                 <div class="form-group"><label>Empresa</label><input type="text" name="empresa" id="lead_empresa"></div>
@@ -171,6 +173,9 @@
                     </select>
                 </div>
 
+                <!-- Botão de Venda Direta (Inicialmente escondido) -->
+                <button type="button" class="btn-acao" id="btnNovaVenda" style="background-color: #2ecc71; color: white; display: none; margin-bottom: 10px;" onclick="abrirVendaDireta()">+ Registrar Nova Venda</button>
+
                 <button type="submit" class="btn-acao" id="btnSalvarLead">Salvar Lead</button>
                 <button type="button" class="btn-cancelar" onclick="fecharModais()">Cancelar</button>
             </form>
@@ -205,7 +210,7 @@
     <div class="modal-overlay" id="modalFechamento">
         <div class="modal-content" style="max-width: 400px;">
             <h2 style="color: #2ecc71; font-size: 1.2em; margin-top:0; border-bottom: 1px solid #333; padding-bottom: 10px;">✅ Registrar Venda</h2>
-            <p style="color: #ccc; font-size: 0.9em; margin-bottom: 15px;">Informe os detalhes do fechamento.</p>
+            <p style="color: #ccc; font-size: 0.9em; margin-bottom: 15px;">Para contabilizar no dashboard, informe os detalhes do fechamento.</p>
             
             <form action="/salvar_feedback" method="POST">
                 <!-- Enviamos evento_id como 0 ou vazio pois a venda vem da base de leads, e não da agenda -->
@@ -220,7 +225,7 @@
                         <option value="{{ p.id }}">{{ p.nome }} - R$ {{ p.preco }}</option>
                         {% endfor %}
                     </select>
-                    <span style="font-size: 0.75em; color: #aaa; margin-top: 5px; display: block;">Selecione todos os produtos vendidos.</span>
+                    <span style="font-size: 0.75em; color: #aaa; margin-top: 5px; display: block;">Segure CTRL (ou CMD) para selecionar múltiplos.</span>
                 </div>
 
                 <div class="form-group" style="margin-top: 15px;">
@@ -241,6 +246,17 @@
         function abrirModal(id) { document.getElementById(id).style.display = 'flex'; }
         function fecharModais() { document.querySelectorAll('.modal-overlay').forEach(el => el.style.display = 'none'); }
         
+        function prepararNovoLead() {
+            document.getElementById('formLead').action = '/cadastrar_lead';
+            document.getElementById('tituloModalLead').innerText = 'Novo Lead';
+            document.getElementById('btnSalvarLead').innerText = 'Salvar Lead';
+            document.getElementById('formLead').reset();
+            document.getElementById('lead_id').value = '';
+            document.getElementById('status_original').value = ''; // Limpa o status original
+            document.getElementById('btnNovaVenda').style.display = 'none'; // Esconde botão de nova venda
+            abrirModal('modalLead');
+        }
+
         function prepararEdicao(id, nome, empresa, interesse, telefone, email, cep, rua, numero, bairro, cidade, status) {
             document.getElementById('formLead').action = '/editar_lead';
             document.getElementById('tituloModalLead').innerText = 'Editar Lead';
@@ -260,25 +276,46 @@
             document.getElementById('cidade').value = cidade !== 'None' ? cidade : '';
             
             document.getElementById('lead_status').value = status;
+            document.getElementById('status_original').value = status; // Salva o status que veio do banco
+            
+            // Exibe o botão de nova venda para clientes já existentes
+            document.getElementById('btnNovaVenda').style.display = 'block'; 
+            
             abrirModal('modalLead');
         }
 
-        // NOVA FUNÇÃO: Intercepta a mudança de status para "Fechado"
+        // Intercepta a mudança de status no seletor
         function verificarFechamento(status) {
             if (status === 'Fechado') {
                 let idDoLead = document.getElementById('lead_id').value;
+                let statusOriginal = document.getElementById('status_original').value;
                 
-                // Trava de segurança para impedir a venda de um lead que ainda não existe no banco (Novo Lead)
+                // Trava 1: Segurança para impedir a venda de um lead que ainda não existe no banco
                 if (!idDoLead) {
                     alert("⚠️ Salve este novo lead primeiro antes de marcá-lo como 'Fechado' para contabilizar a venda.");
                     document.getElementById('lead_status').value = 'Qualificação';
                     return;
                 }
                 
+                // Trava 2: Se o cliente já era 'Fechado' originalmente, não abre o modal de fechamento novamente
+                if (statusOriginal === 'Fechado') {
+                    return; 
+                }
+                
                 fecharModais();
                 abrirModal('modalFechamento');
                 document.getElementById('input_id_lead_venda').value = idDoLead;
             }
+        }
+
+        // Função do botão de Venda Direta
+        function abrirVendaDireta() {
+            let idDoLead = document.getElementById('lead_id').value;
+            if (!idDoLead) return; // Segurança extra
+            
+            fecharModais();
+            abrirModal('modalFechamento');
+            document.getElementById('input_id_lead_venda').value = idDoLead;
         }
 
         function copiarLinkCaptura(token) {
